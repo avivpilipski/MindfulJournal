@@ -1,189 +1,592 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8"/>
-  <title>Mindful Journal (No NPM)</title>
-</head>
-<body>
-  <h1>Mindful Journal</h1>
-  
-  <!-- Simple UI -->
-  <textarea id="journalContent" placeholder="Write your journal..."></textarea>
-  <br/>
-  <label>
-    <input type="checkbox" id="publicToggle" /> Make Public
-  </label>
-  <br/>
-  <button id="createJournalBtn">Create Journal</button>
-  <p id="statusMsg"></p>
-
-  <!-- Display previous journal entries -->
-  <div id="journals"></div>
-
-  <!-- 1. ethers (CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.umd.min.js"></script>
-
-  <!-- 2. Firebase (CDN) -->
-  <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-firestore.js"></script>
-
-  <!-- 3. Your Custom JavaScript -->
-  <script>
-    // =======================
-    // Firebase Configuration
-    // =======================
-    const firebaseConfig = {
-      apiKey: "AIzaSyCiawo_DNjM35XQRj-2FcTCmNai0weth7g",
-      authDomain: "mindfuljournal-c5bf0.firebaseapp.com",
-      projectId: "mindfuljournal-c5bf0",
-      storageBucket: "mindfuljournal-c5bf0.appspot.com",
-      messagingSenderId: "983633163512",
-      appId: "1:983633163512:web:4949d3cf427cd9e668f70d",
-      measurementId: "G-8QWRCF39M4"
-    };
-
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-
-    // =======================
-    // Smart Contract Setup
-    // =======================
-    const contractAddress = "0x7EF2e0048f5bAeDe046f6BF797943daF4ED8CB47";
-    const abi = [ 
-      {
-        "type": "event",
-        "name": "JournalCreated",
-        "inputs": [
-          { "name": "user", "type": "address", "indexed": false },
-          { "name": "entry_id", "type": "uint256", "indexed": false },
-          { "name": "is_public", "type": "bool", "indexed": false }
-        ],
-        "anonymous": false
-      },
-      {
-        "type": "function",
-        "name": "create_journal",
-        "stateMutability": "nonpayable",
-        "inputs": [
-          { "name": "content", "type": "string" },
-          { "name": "is_public", "type": "bool" }
-        ],
-        "outputs": []
-      },
-      {
-        "type": "function",
-        "name": "view_journal",
-        "stateMutability": "view",
-        "inputs": [
-          { "name": "entry_id", "type": "uint256" }
-        ],
-        "outputs": [
-          { "name": "", "type": "string" }
-        ]
-      },
-      {
-        "type": "function",
-        "name": "toggle_privacy",
-        "stateMutability": "nonpayable",
-        "inputs": [
-          { "name": "entry_id", "type": "uint256" }
-        ],
-        "outputs": []
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mindful Journal</title>
+    <style>
+      :root {
+        --primary: #4CAF50;
+        --primary-dark: #388E3C;
+        --light-bg: #f5f9f5;
+        --dark-text: #333;
+        --light-text: #f5f5f5;
+        --border-radius: 8px;
+        --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       }
-    ];
+      
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
+      
+      body {
+        background-color: var(--light-bg);
+        color: var(--dark-text);
+        line-height: 1.6;
+        padding: 20px;
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      
+      .container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      
+      h1 {
+        color: var(--primary-dark);
+        margin-bottom: 10px;
+      }
+      
+      .wallet-status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+      }
+      
+      .status-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: #ccc;
+      }
+      
+      .status-indicator.connected {
+        background-color: var(--primary);
+      }
+      
+      .card {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 20px;
+        box-shadow: var(--shadow);
+        margin-bottom: 20px;
+      }
+      
+      textarea {
+        width: 100%;
+        min-height: 150px;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: var(--border-radius);
+        margin-bottom: 15px;
+        resize: vertical;
+        font-size: 16px;
+      }
+      
+      textarea:focus {
+        outline: 2px solid var(--primary);
+        border-color: transparent;
+      }
+      
+      .controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      
+      .toggle-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      /* Toggle Switch */
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 24px;
+      }
+      
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: 0.4s;
+        border-radius: 24px;
+      }
+      
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.4s;
+        border-radius: 50%;
+      }
+      
+      input:checked + .slider {
+        background-color: var(--primary);
+      }
+      
+      input:checked + .slider:before {
+        transform: translateX(26px);
+      }
+      
+      button {
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s;
+      }
+      
+      button:hover {
+        background-color: var(--primary-dark);
+      }
+      
+      button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+      
+      .status {
+        margin-top: 10px;
+        font-style: italic;
+        color: #666;
+        min-height: 24px;
+      }
+      
+      .journals-container {
+        margin-top: 30px;
+      }
+      
+      .journal-entry {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: var(--shadow);
+        border-left: 4px solid var(--primary);
+      }
+      
+      .journal-meta {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 14px;
+        color: #666;
+      }
+      
+      .journal-content {
+        line-height: 1.6;
+      }
+      
+      .privacy-tag {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        background-color: #f0f0f0;
+      }
+      
+      .privacy-tag.public {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+      }
+      
+      .privacy-tag.private {
+        background-color: #ffebee;
+        color: #c62828;
+      }
+      
+      .truncated-address {
+        font-family: monospace;
+      }
+      
+      .loading {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+      }
+      
+      .connect-prompt {
+        text-align: center;
+        padding: 40px 20px;
+        background-color: #f9f9f9;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow);
+      }
+      
+      @media (max-width: 600px) {
+        .controls {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        
+        button {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Mindful Journal</h1>
+        <div class="wallet-status">
+          <div class="status-indicator" id="connectionIndicator"></div>
+          <span id="walletStatus">Wallet not connected</span>
+          <button id="connectWalletBtn">Connect</button>
+        </div>
+      </header>
+      
+      <div id="journalForm" class="card" style="display: none;">
+        <textarea id="journalContent" placeholder="Write your thoughts, reflections, and mindful observations here..."></textarea>
+        <div class="controls">
+          <div class="toggle-container">
+            <label class="switch">
+              <input type="checkbox" id="publicToggle">
+              <span class="slider"></span>
+            </label>
+            <span>Make Public</span>
+          </div>
+          <button id="createJournalBtn">Save Journal Entry</button>
+        </div>
+        <p id="statusMsg" class="status"></p>
+      </div>
+      
+      <div id="connectPrompt" class="connect-prompt">
+        <p>Connect your wallet to start journaling</p>
+        <button id="promptConnectBtn">Connect Wallet</button>
+      </div>
+      
+      <div class="journals-container">
+        <h2>Your Journal Entries</h2>
+        <div id="journals"></div>
+      </div>
+    </div>
 
-    let provider;
-    let signer;
-    let contract;
+   <!-- Scripts -->
+<script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="application/javascript"></script>
+<script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-firestore-compat.js"></script>
 
-    // Initialize Ethers.js and Metamask
-    async function initEthers() {
-      if (window.ethereum) {
+<script>
+  // Firebase Configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyCiawo_DNjM35XQRj-2FcTCmNai0weth7g",
+    authDomain: "mindfuljournal-c5bf0.firebaseapp.com",
+    projectId: "mindfuljournal-c5bf0",
+    storageBucket: "mindfuljournal-c5bf0.appspot.com",
+    messagingSenderId: "983633163512",
+    appId: "1:983633163512:web:4949d3cf427cd9e668f70d",
+    measurementId: "G-8QWRCF39M4"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // Contract Information
+  const contractAddress = "0x7EF2e0048f5bAeDe046f6BF797943daF4ED8CB47";
+  const abi = [ 
+    {
+      "type": "event",
+      "name": "JournalCreated",
+      "inputs": [
+        { "name": "user", "type": "address", "indexed": false },
+        { "name": "entry_id", "type": "uint256", "indexed": false },
+        { "name": "is_public", "type": "bool", "indexed": false }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "function",
+      "name": "create_journal",
+      "stateMutability": "nonpayable",
+      "inputs": [
+        { "name": "content", "type": "string" },
+        { "name": "is_public", "type": "bool" }
+      ],
+      "outputs": []
+    },
+    {
+      "type": "function",
+      "name": "view_journal",
+      "stateMutability": "view",
+      "inputs": [
+        { "name": "entry_id", "type": "uint256" }
+      ],
+      "outputs": [
+        { "name": "", "type": "string" }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "toggle_privacy",
+      "stateMutability": "nonpayable",
+      "inputs": [
+        { "name": "entry_id", "type": "uint256" }
+      ],
+      "outputs": []
+    }
+  ];
+
+  // Global variables
+  let provider;
+  let signer;
+  let contract;
+  let userAddress = null;
+
+  // Replace the entire connectWallet function with this version
+async function connectWallet() {
+  try {
+    // Clear any previous status messages
+    document.getElementById('statusMsg').textContent = '';
+    
+    // Check if MetaMask is installed
+    if (!window.ethereum) {
+      alert("Please install MetaMask or use a Web3 browser to use this app.");
+      return;
+    }
+    
+    console.log("Requesting accounts...");
+    
+    try {
+      // Request accounts access - this opens the MetaMask popup
+      const accounts = await window.ethereum.request({ 
+        method: 'eth_requestAccounts' 
+      });
+      
+      console.log("Accounts received:", accounts);
+      
+      if (accounts && accounts.length > 0) {
+        // Set up provider AFTER we have accounts
         provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
         signer = provider.getSigner();
         contract = new ethers.Contract(contractAddress, abi, signer);
+        userAddress = accounts[0];
+        
+        console.log("Connected to address:", userAddress);
+        
+        // Update UI to show connected state
+        document.getElementById('walletStatus').textContent = truncateAddress(userAddress);
+        document.getElementById('connectionIndicator').classList.add('connected');
+        document.getElementById('connectWalletBtn').textContent = 'Connected';
+        
+        // Show journal form, hide connect prompt
+        document.getElementById('journalForm').style.display = 'block';
+        document.getElementById('connectPrompt').style.display = 'none';
+        
+        // Load journals
+        loadJournals();
       } else {
-        alert("Please install Metamask or use a Web3 browser.");
+        console.error("No accounts received");
+        document.getElementById('statusMsg').textContent = 'No accounts received. Please unlock MetaMask.';
       }
+    } catch (connectionError) {
+      console.error("Connection error:", connectionError);
+      document.getElementById('statusMsg').textContent = 'Connection error: ' + connectionError.message;
     }
+  } catch (outerError) {
+    console.error('Overall error:', outerError);
+    document.getElementById('statusMsg').textContent = 'Error: ' + outerError.message;
+  }
+}
 
-    // =======================
-    // Create Journal Function
-    // =======================
-    async function createJournal() {
-      try {
-        const content = document.getElementById("journalContent").value;
-        const isPublic = document.getElementById("publicToggle").checked;
-
-        if (!content.trim()) {
-          alert("Please enter a journal entry.");
-          return;
-        }
-
-        document.getElementById("statusMsg").textContent = "Processing...";
-
-        // 1️⃣ Ensure blockchain connection
-        if (!contract) {
-          await initEthers();
-        }
-
-        // 2️⃣ Submit journal to blockchain
-        let tx = await contract.create_journal(content, isPublic);
-        document.getElementById("statusMsg").textContent = "Transaction sent! Waiting for confirmation...";
-        await tx.wait();
-        document.getElementById("statusMsg").textContent = "Journal entry created on blockchain!";
-
-        // 3️⃣ Save to Firebase Firestore
-        const userAddress = await signer.getAddress();
-        await db.collection("journals").add({
-          owner: userAddress,
-          content: content,
-          is_public: isPublic,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        alert("Journal saved to Firebase!");
-        loadJournals(); // Refresh displayed journals
-
-      } catch (error) {
-        console.error(error);
-        document.getElementById("statusMsg").textContent = "Error creating journal entry.";
+// Add this outside the function to detect network and account changes
+if (window.ethereum) {
+  console.log("Setting up ethereum event listeners");
+  
+  // Detect account changes
+  window.ethereum.on('accountsChanged', function(accounts) {
+    console.log("Accounts changed:", accounts);
+    if (accounts.length > 0) {
+      userAddress = accounts[0];
+      document.getElementById('walletStatus').textContent = truncateAddress(userAddress);
+      document.getElementById('connectionIndicator').classList.add('connected');
+      document.getElementById('connectWalletBtn').textContent = 'Connected';
+      document.getElementById('journalForm').style.display = 'block';
+      document.getElementById('connectPrompt').style.display = 'none';
+      loadJournals();
+    } else {
+      // User disconnected all accounts
+      userAddress = null;
+      document.getElementById('walletStatus').textContent = 'Wallet not connected';
+      document.getElementById('connectionIndicator').classList.remove('connected');
+      document.getElementById('connectWalletBtn').textContent = 'Connect';
+      document.getElementById('journalForm').style.display = 'none';
+      document.getElementById('connectPrompt').style.display = 'block';
+    }
+  });
+  
+  // Detect network changes
+  window.ethereum.on('chainChanged', function() {
+    console.log("Network changed, refreshing...");
+    window.location.reload();
+  });
+  
+  // Check immediately if already connected
+  window.ethereum.request({ method: 'eth_accounts' })
+    .then(accounts => {
+      console.log("Initial accounts check:", accounts);
+      if (accounts && accounts.length > 0) {
+        userAddress = accounts[0];
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+        contract = new ethers.Contract(contractAddress, abi, signer);
+        
+        document.getElementById('walletStatus').textContent = truncateAddress(userAddress);
+        document.getElementById('connectionIndicator').classList.add('connected');
+        document.getElementById('connectWalletBtn').textContent = 'Connected';
+        document.getElementById('journalForm').style.display = 'block';
+        document.getElementById('connectPrompt').style.display = 'none';
+        loadJournals();
       }
-    }
+    })
+    .catch(error => console.error("Error checking initial accounts:", error));
+}
 
-    // =======================
-    // Load and Display Journals from Firebase
-    // =======================
-    async function loadJournals() {
-      const journalsDiv = document.getElementById("journals");
-      journalsDiv.innerHTML = "<h2>Loading journals...</h2>";
+  // Create Journal Function
+  async function createJournal() {
+    try {
+      const content = document.getElementById('journalContent').value;
+      const isPublic = document.getElementById('publicToggle').checked;
 
-      try {
-        const querySnapshot = await db.collection("journals").orderBy("timestamp", "desc").get();
-
-        journalsDiv.innerHTML = "<h2>Previous Journal Entries:</h2>";
-        querySnapshot.forEach((doc) => {
-          const entry = doc.data();
-          journalsDiv.innerHTML += `
-            <p><strong>${entry.owner}:</strong> ${entry.content} (${entry.is_public ? "Public" : "Private"})</p>
-          `;
-        });
-      } catch (error) {
-        console.error("Error loading journals:", error);
-        journalsDiv.innerHTML = "<p>Error loading journals.</p>";
+      if (!content.trim()) {
+        alert("Please enter a journal entry.");
+        return;
       }
+
+      // Disable button and show status
+      document.getElementById('createJournalBtn').disabled = true;
+      document.getElementById('statusMsg').textContent = "Processing your journal entry...";
+
+      // Check connection
+      if (!userAddress) {
+        await connectWallet();
+      }
+
+      // Submit journal to blockchain
+      let tx = await contract.create_journal(content, isPublic);
+      document.getElementById('statusMsg').textContent = "Transaction sent! Waiting for confirmation...";
+      
+      // Wait for transaction confirmation
+      await tx.wait();
+      
+      // Save to Firebase
+      await db.collection("journals").add({
+        owner: userAddress,
+        content: content,
+        is_public: isPublic,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      
+      document.getElementById('statusMsg').textContent = "Journal entry saved successfully!";
+      document.getElementById('journalContent').value = "";
+      document.getElementById('createJournalBtn').disabled = false;
+      
+      // Reload journals
+      loadJournals();
+      
+    } catch (error) {
+      console.error('Error creating journal:', error);
+      document.getElementById('statusMsg').textContent = 'Error creating journal: ' + error.message;
+      document.getElementById('createJournalBtn').disabled = false;
     }
+  }
 
-    // =======================
-    // Event Listeners
-    // =======================
-    document.getElementById("createJournalBtn").addEventListener("click", createJournal);
+  // Load Journals Function
+  async function loadJournals() {
+    const journalsDiv = document.getElementById('journals');
+    journalsDiv.innerHTML = "<p class='loading'>Loading journals...</p>";
 
-    // Auto-load journals on page load
-    window.onload = loadJournals;
-  </script>
+    try {
+      // Only load if we have a connected wallet
+      if (!userAddress) {
+        journalsDiv.innerHTML = "<p>Connect your wallet to view journals</p>";
+        return;
+      }
+      
+      // Query journals by the current user
+      const querySnapshot = await db.collection("journals")
+        .where("owner", "==", userAddress)
+        .orderBy("timestamp", "desc")
+        .get();
+      
+      if (querySnapshot.empty) {
+        journalsDiv.innerHTML = "<p>No journal entries yet. Start writing!</p>";
+        return;
+      }
 
-</body>
-</html>
+      // Clear previous entries
+      journalsDiv.innerHTML = "";
+      
+      // Display journals
+      querySnapshot.forEach((doc) => {
+        const entry = doc.data();
+        const timestamp = entry.timestamp ? formatDate(entry.timestamp) : 'Just now';
+        
+        journalsDiv.innerHTML += `
+          <div class="journal-entry">
+            <div class="journal-meta">
+              <span class="entry-date">${timestamp}</span>
+              <span class="privacy-tag ${entry.is_public ? 'public' : 'private'}">
+                ${entry.is_public ? 'Public' : 'Private'}
+              </span>
+            </div>
+            <div class="journal-content">${entry.content}</div>
+          </div>
+        `;
+      });
+    } catch (error) {
+      console.error("Error loading journals:", error);
+      journalsDiv.innerHTML = "<p>Error loading journals. Please try again.</p>";
+    }
+  }
+
+  // Helper Functions
+  function truncateAddress(address) {
+    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+  }
+
+  function formatDate(timestamp) {
+    if (!timestamp) return 'Just now';
+    const date = timestamp.toDate();
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+  }
+
+  // Event Listeners
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('connectWalletBtn').addEventListener('click', connectWallet);
+    document.getElementById('promptConnectBtn').addEventListener('click', connectWallet);
+    document.getElementById('createJournalBtn').addEventListener('click', createJournal);
+    
+    // Check if wallet is already connected
+    if (window.ethereum && window.ethereum.selectedAddress) {
+      connectWallet();
+    }
+  });
+</script>
