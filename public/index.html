@@ -49,106 +49,49 @@
     // =======================
     // Smart Contract Setup
     // =======================
-    const contractAddress = "0xD7ACd2a9FD159E69Bb102A1ca21C9a3e3A5F771B";
-    const abi = [
-  {
-    "type": "event",
-    "name": "JournalCreated",
-    "inputs": [
-      { "name": "user", "type": "address", "indexed": false },
-      { "name": "entry_id", "type": "uint256", "indexed": false },
-      { "name": "is_public", "type": "bool", "indexed": false }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "constructor",
-    "stateMutability": "nonpayable",
-    "inputs": [
-      { "name": "_token", "type": "address" },
-      { "name": "_token_required", "type": "uint256" }
-    ]
-  },
-  {
-    "type": "function",
-    "name": "create_journal",
-    "stateMutability": "nonpayable",
-    "inputs": [
-      { "name": "content", "type": "string" },
-      { "name": "is_public", "type": "bool" }
-    ],
-    "outputs": []
-  },
-  {
-    "type": "function",
-    "name": "view_journal",
-    "stateMutability": "view",
-    "inputs": [
-      { "name": "entry_id", "type": "uint256" }
-    ],
-    "outputs": [
-      { "name": "", "type": "string" }
-    ]
-  },
-  {
-    "type": "function",
-    "name": "toggle_privacy",
-    "stateMutability": "nonpayable",
-    "inputs": [
-      { "name": "entry_id", "type": "uint256" }
-    ],
-    "outputs": []
-  },
-  {
-    "type": "function",
-    "name": "journal_token",
-    "stateMutability": "view",
-    "inputs": [],
-    "outputs": [
-      { "name": "", "type": "address" }
-    ]
-  },
-  {
-    "type": "function",
-    "name": "journals",
-    "stateMutability": "view",
-    "inputs": [
-      { "name": "arg0", "type": "uint256" }
-    ],
-    "outputs": [
+    const contractAddress = "0x7EF2e0048f5bAeDe046f6BF797943daF4ED8CB47";
+    const abi = [ 
       {
-        "name": "",
-        "type": "tuple",
-        "components": [
-          { "name": "owner", "type": "address" },
+        "type": "event",
+        "name": "JournalCreated",
+        "inputs": [
+          { "name": "user", "type": "address", "indexed": false },
+          { "name": "entry_id", "type": "uint256", "indexed": false },
+          { "name": "is_public", "type": "bool", "indexed": false }
+        ],
+        "anonymous": false
+      },
+      {
+        "type": "function",
+        "name": "create_journal",
+        "stateMutability": "nonpayable",
+        "inputs": [
           { "name": "content", "type": "string" },
           { "name": "is_public", "type": "bool" }
+        ],
+        "outputs": []
+      },
+      {
+        "type": "function",
+        "name": "view_journal",
+        "stateMutability": "view",
+        "inputs": [
+          { "name": "entry_id", "type": "uint256" }
+        ],
+        "outputs": [
+          { "name": "", "type": "string" }
         ]
+      },
+      {
+        "type": "function",
+        "name": "toggle_privacy",
+        "stateMutability": "nonpayable",
+        "inputs": [
+          { "name": "entry_id", "type": "uint256" }
+        ],
+        "outputs": []
       }
-    ]
-  },
-  {
-    "type": "function",
-    "name": "user_journal_count",
-    "stateMutability": "view",
-    "inputs": [
-      { "name": "arg0", "type": "address" }
-    ],
-    "outputs": [
-      { "name": "", "type": "uint256" }
-    ]
-  },
-  {
-    "type": "function",
-    "name": "token_required",
-    "stateMutability": "view",
-    "inputs": [],
-    "outputs": [
-      { "name": "", "type": "uint256" }
-    ]
-  }
-];
-
+    ];
 
     let provider;
     let signer;

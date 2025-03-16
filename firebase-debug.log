@@ -1,50 +1,97 @@
-[debug] [2025-03-16T19:33:06.550Z] ----------------------------------------------------------------------
-[debug] [2025-03-16T19:33:06.551Z] Command:       /usr/local/bin/node /usr/local/bin/firebase serve
-[debug] [2025-03-16T19:33:06.552Z] CLI Version:   13.34.0
-[debug] [2025-03-16T19:33:06.552Z] Platform:      darwin
-[debug] [2025-03-16T19:33:06.552Z] Node Version:  v20.18.0
-[debug] [2025-03-16T19:33:06.552Z] Time:          Sun Mar 16 2025 12:33:06 GMT-0700 (Pacific Daylight Time)
-[debug] [2025-03-16T19:33:06.552Z] ----------------------------------------------------------------------
+[debug] [2025-03-16T19:48:46.005Z] ----------------------------------------------------------------------
+[debug] [2025-03-16T19:48:46.006Z] Command:       /usr/local/bin/node /usr/local/bin/firebase deploy
+[debug] [2025-03-16T19:48:46.006Z] CLI Version:   13.34.0
+[debug] [2025-03-16T19:48:46.006Z] Platform:      darwin
+[debug] [2025-03-16T19:48:46.006Z] Node Version:  v20.18.0
+[debug] [2025-03-16T19:48:46.006Z] Time:          Sun Mar 16 2025 12:48:46 GMT-0700 (Pacific Daylight Time)
+[debug] [2025-03-16T19:48:46.006Z] ----------------------------------------------------------------------
 [debug] 
-[debug] [2025-03-16T19:33:06.626Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-03-16T19:33:06.626Z] > authorizing via signed-in user (avivpilipski@gmail.com)
-[debug] [2025-03-16T19:33:06.626Z] [iam] checking project mindfuljournal-34abe for permissions ["firebase.projects.get"]
-[debug] [2025-03-16T19:33:06.627Z] Checked if tokens are valid: true, expires at: 1742156015753
-[debug] [2025-03-16T19:33:06.627Z] Checked if tokens are valid: true, expires at: 1742156015753
-[debug] [2025-03-16T19:33:06.627Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe:testIamPermissions [none]
-[debug] [2025-03-16T19:33:06.627Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe:testIamPermissions x-goog-quota-user=projects/mindfuljournal-34abe
-[debug] [2025-03-16T19:33:06.627Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe:testIamPermissions {"permissions":["firebase.projects.get"]}
-[debug] [2025-03-16T19:33:06.972Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe:testIamPermissions 200
-[debug] [2025-03-16T19:33:06.973Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe:testIamPermissions {"permissions":["firebase.projects.get"]}
-[debug] [2025-03-16T19:33:06.973Z] Checked if tokens are valid: true, expires at: 1742156015753
-[debug] [2025-03-16T19:33:06.973Z] Checked if tokens are valid: true, expires at: 1742156015753
-[debug] [2025-03-16T19:33:06.973Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe [none]
-[debug] [2025-03-16T19:33:07.106Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe 200
-[debug] [2025-03-16T19:33:07.106Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe {"projectNumber":"320679205559","projectId":"mindfuljournal-34abe","lifecycleState":"DELETE_REQUESTED","name":"MindfulJournal","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2025-03-14T19:28:16.625308Z"}
+[debug] [2025-03-16T19:48:46.080Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-03-16T19:48:46.080Z] > authorizing via signed-in user (avivpilipski@gmail.com)
+[debug] [2025-03-16T19:48:46.080Z] [iam] checking project mindfuljournal-34abe for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2025-03-16T19:48:46.081Z] Checked if tokens are valid: true, expires at: 1742156015753
+[debug] [2025-03-16T19:48:46.081Z] Checked if tokens are valid: true, expires at: 1742156015753
+[debug] [2025-03-16T19:48:46.081Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe:testIamPermissions [none]
+[debug] [2025-03-16T19:48:46.081Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe:testIamPermissions x-goog-quota-user=projects/mindfuljournal-34abe
+[debug] [2025-03-16T19:48:46.081Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-03-16T19:48:46.413Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe:testIamPermissions 200
+[debug] [2025-03-16T19:48:46.413Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-03-16T19:48:46.414Z] Checked if tokens are valid: true, expires at: 1742156015753
+[debug] [2025-03-16T19:48:46.414Z] Checked if tokens are valid: true, expires at: 1742156015753
+[debug] [2025-03-16T19:48:46.414Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/mindfuljournal-34abe [none]
+[debug] [2025-03-16T19:48:46.836Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/mindfuljournal-34abe 200
+[debug] [2025-03-16T19:48:46.837Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/mindfuljournal-34abe {"projectId":"mindfuljournal-34abe","projectNumber":"320679205559","displayName":"MindfulJournal","name":"projects/mindfuljournal-34abe","resources":{"hostingSite":"mindfuljournal-34abe"},"state":"ACTIVE","etag":"1_3065d3e5-bc9d-404f-b8b3-291061939f1b"}
+[info] 
+[info] === Deploying to 'mindfuljournal-34abe'...
+[info] 
+[info] i  deploying hosting 
+[debug] [2025-03-16T19:48:46.841Z] Checked if tokens are valid: true, expires at: 1742156015753
+[debug] [2025-03-16T19:48:46.842Z] Checked if tokens are valid: true, expires at: 1742156015753
+[debug] [2025-03-16T19:48:46.842Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/mindfuljournal-34abe/versions [none]
+[debug] [2025-03-16T19:48:46.842Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/mindfuljournal-34abe/versions {"status":"CREATED","labels":{"deployment-tool":"cli-firebase"}}
+[debug] [2025-03-16T19:48:47.941Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/mindfuljournal-34abe/versions 500
+[debug] [2025-03-16T19:48:47.942Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/mindfuljournal-34abe/versions {"error":{"code":500,"message":"Internal error encountered.","status":"INTERNAL"}}
+[error] 
+[error] Error: Request to https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/mindfuljournal-34abe/versions had HTTP Error: 500, Internal error encountered.
+[debug] [2025-03-16T19:48:47.944Z] Error Context: {
+  "body": {
+    "error": {
+      "code": 500,
+      "message": "Internal error encountered.",
+      "status": "INTERNAL"
+    }
+  },
+  "response": {
+    "statusCode": 500
+  }
+}
+[debug] [2025-03-16T19:49:03.301Z] ----------------------------------------------------------------------
+[debug] [2025-03-16T19:49:03.302Z] Command:       /usr/local/bin/node /usr/local/bin/firebase serve
+[debug] [2025-03-16T19:49:03.302Z] CLI Version:   13.34.0
+[debug] [2025-03-16T19:49:03.302Z] Platform:      darwin
+[debug] [2025-03-16T19:49:03.302Z] Node Version:  v20.18.0
+[debug] [2025-03-16T19:49:03.303Z] Time:          Sun Mar 16 2025 12:49:03 GMT-0700 (Pacific Daylight Time)
+[debug] [2025-03-16T19:49:03.303Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-03-16T19:49:03.376Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-03-16T19:49:03.376Z] > authorizing via signed-in user (avivpilipski@gmail.com)
+[debug] [2025-03-16T19:49:03.376Z] [iam] checking project mindfuljournal-34abe for permissions ["firebase.projects.get"]
+[debug] [2025-03-16T19:49:03.377Z] Checked if tokens are valid: true, expires at: 1742156015753
+[debug] [2025-03-16T19:49:03.377Z] Checked if tokens are valid: true, expires at: 1742156015753
+[debug] [2025-03-16T19:49:03.377Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe:testIamPermissions [none]
+[debug] [2025-03-16T19:49:03.377Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe:testIamPermissions x-goog-quota-user=projects/mindfuljournal-34abe
+[debug] [2025-03-16T19:49:03.377Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2025-03-16T19:49:03.663Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe:testIamPermissions 200
+[debug] [2025-03-16T19:49:03.663Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2025-03-16T19:49:03.663Z] Checked if tokens are valid: true, expires at: 1742156015753
+[debug] [2025-03-16T19:49:03.664Z] Checked if tokens are valid: true, expires at: 1742156015753
+[debug] [2025-03-16T19:49:03.664Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe [none]
+[debug] [2025-03-16T19:49:03.800Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe 200
+[debug] [2025-03-16T19:49:03.800Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/mindfuljournal-34abe {"projectNumber":"320679205559","projectId":"mindfuljournal-34abe","lifecycleState":"DELETE_REQUESTED","name":"MindfulJournal","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2025-03-14T19:28:16.625308Z"}
 [info] 
 [info] === Serving from '/Users/avivpilipski/Desktop/12/HTCS_Projects/MindfulJournal'...
 [info] 
-[debug] [2025-03-16T19:33:07.109Z] Checked if tokens are valid: true, expires at: 1742156015753
-[debug] [2025-03-16T19:33:07.109Z] Checked if tokens are valid: true, expires at: 1742156015753
-[debug] [2025-03-16T19:33:07.109Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/mindfuljournal-34abe/sites 
-[debug] [2025-03-16T19:33:07.964Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/mindfuljournal-34abe/sites 200
-[debug] [2025-03-16T19:33:07.964Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/mindfuljournal-34abe/sites {"sites":[{"name":"projects/mindfuljournal-34abe/sites/mindfuljournal-34abe","defaultUrl":"https://mindfuljournal-34abe.web.app","type":"DEFAULT_SITE"}]}
-[debug] [2025-03-16T19:33:07.964Z] Checked if tokens are valid: true, expires at: 1742156015753
-[debug] [2025-03-16T19:33:07.964Z] Checked if tokens are valid: true, expires at: 1742156015753
-[debug] [2025-03-16T19:33:07.964Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/mindfuljournal-34abe/webApps/-/config [none]
-[debug] [2025-03-16T19:33:08.509Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/mindfuljournal-34abe/webApps/-/config 403
-[debug] [2025-03-16T19:33:08.510Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/mindfuljournal-34abe/webApps/-/config {"error":{"code":403,"message":"com.google.api.tenant.error.TenantManagerException: Project '320679205559' not found or permission denied.","status":"PERMISSION_DENIED"}}
-[debug] [2025-03-16T19:33:08.511Z] fetchWebSetup error: FirebaseError: Request to https://firebase.googleapis.com/v1beta1/projects/mindfuljournal-34abe/webApps/-/config had HTTP Error: 403, com.google.api.tenant.error.TenantManagerException: Project '320679205559' not found or permission denied.
+[debug] [2025-03-16T19:49:03.804Z] Checked if tokens are valid: true, expires at: 1742156015753
+[debug] [2025-03-16T19:49:03.804Z] Checked if tokens are valid: true, expires at: 1742156015753
+[debug] [2025-03-16T19:49:03.804Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/mindfuljournal-34abe/sites 
+[debug] [2025-03-16T19:49:04.619Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/mindfuljournal-34abe/sites 200
+[debug] [2025-03-16T19:49:04.619Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/mindfuljournal-34abe/sites {"sites":[{"name":"projects/mindfuljournal-34abe/sites/mindfuljournal-34abe","defaultUrl":"https://mindfuljournal-34abe.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2025-03-16T19:49:04.620Z] Checked if tokens are valid: true, expires at: 1742156015753
+[debug] [2025-03-16T19:49:04.620Z] Checked if tokens are valid: true, expires at: 1742156015753
+[debug] [2025-03-16T19:49:04.620Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/mindfuljournal-34abe/webApps/-/config [none]
+[debug] [2025-03-16T19:49:05.041Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/mindfuljournal-34abe/webApps/-/config 403
+[debug] [2025-03-16T19:49:05.041Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/mindfuljournal-34abe/webApps/-/config {"error":{"code":403,"message":"com.google.api.tenant.error.TenantManagerException: Project '320679205559' not found or permission denied.","status":"PERMISSION_DENIED"}}
+[debug] [2025-03-16T19:49:05.042Z] fetchWebSetup error: FirebaseError: Request to https://firebase.googleapis.com/v1beta1/projects/mindfuljournal-34abe/webApps/-/config had HTTP Error: 403, com.google.api.tenant.error.TenantManagerException: Project '320679205559' not found or permission denied.
 [warn] ⚠  hosting: Authentication error when trying to fetch your current web app configuration, have you run firebase login? 
 [warn] ⚠  hosting: Using web app configuration from cache. 
-[debug] [2025-03-16T19:33:08.514Z] Checked if tokens are valid: true, expires at: 1742156015753
-[debug] [2025-03-16T19:33:08.514Z] Checked if tokens are valid: true, expires at: 1742156015753
-[debug] [2025-03-16T19:33:08.515Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/mindfuljournal-34abe [none]
-[debug] [2025-03-16T19:33:08.622Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/mindfuljournal-34abe 200
-[debug] [2025-03-16T19:33:08.623Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/mindfuljournal-34abe {"projectId":"mindfuljournal-34abe","projectNumber":"320679205559","displayName":"MindfulJournal","name":"projects/mindfuljournal-34abe","resources":{"hostingSite":"mindfuljournal-34abe"},"state":"ACTIVE","etag":"1_3065d3e5-bc9d-404f-b8b3-291061939f1b"}
+[debug] [2025-03-16T19:49:05.045Z] Checked if tokens are valid: true, expires at: 1742156015753
+[debug] [2025-03-16T19:49:05.045Z] Checked if tokens are valid: true, expires at: 1742156015753
+[debug] [2025-03-16T19:49:05.046Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/mindfuljournal-34abe [none]
+[debug] [2025-03-16T19:49:05.449Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/mindfuljournal-34abe 200
+[debug] [2025-03-16T19:49:05.450Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/mindfuljournal-34abe {"projectId":"mindfuljournal-34abe","projectNumber":"320679205559","displayName":"MindfulJournal","name":"projects/mindfuljournal-34abe","resources":{"hostingSite":"mindfuljournal-34abe"},"state":"ACTIVE","etag":"1_3065d3e5-bc9d-404f-b8b3-291061939f1b"}
 [info] i  hosting[mindfuljournal-34abe]: Serving hosting files from: public {"metadata":{"emulator":{"name":"hosting"},"message":"Serving hosting files from: \u001b[1mpublic\u001b[22m"}}
 [info] ✔  hosting[mindfuljournal-34abe]: Local server: http://localhost:5002 {"metadata":{"emulator":{"name":"hosting"},"message":"Local server: \u001b[4m\u001b[1mhttp://localhost:5002\u001b[22m\u001b[24m"}}
-[info] i  hosting: ::1 - - [16/Mar/2025:19:33:15 +0000] "GET / HTTP/1.1" 200 - "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [16/Mar/2025:19:33:15 +0000] \"GET / HTTP/1.1\" 200 - \"-\" \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36\""}}
-[info] i  hosting: ::1 - - [16/Mar/2025:19:33:15 +0000] "GET /favicon.ico HTTP/1.1" 200 - "http://localhost:5002/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [16/Mar/2025:19:33:15 +0000] \"GET /favicon.ico HTTP/1.1\" 200 - \"http://localhost:5002/\" \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36\""}}
-[info] i  hosting: ::1 - - [16/Mar/2025:19:39:09 +0000] "GET / HTTP/1.1" 200 - "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [16/Mar/2025:19:39:09 +0000] \"GET / HTTP/1.1\" 200 - \"-\" \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36\""}}
-[info] i  hosting: ::1 - - [16/Mar/2025:19:39:09 +0000] "GET /favicon.ico HTTP/1.1" 304 - "http://localhost:5002/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [16/Mar/2025:19:39:09 +0000] \"GET /favicon.ico HTTP/1.1\" 304 - \"http://localhost:5002/\" \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36\""}}
+[info] i  hosting: ::1 - - [16/Mar/2025:19:49:14 +0000] "GET / HTTP/1.1" 200 - "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [16/Mar/2025:19:49:14 +0000] \"GET / HTTP/1.1\" 200 - \"-\" \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36\""}}
+[info] i  hosting: ::1 - - [16/Mar/2025:19:49:14 +0000] "GET /favicon.ico HTTP/1.1" 200 - "http://localhost:5002/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [16/Mar/2025:19:49:14 +0000] \"GET /favicon.ico HTTP/1.1\" 200 - \"http://localhost:5002/\" \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36\""}}
+[info] i  hosting: ::1 - - [16/Mar/2025:19:49:28 +0000] "GET / HTTP/1.1" 200 - "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [16/Mar/2025:19:49:28 +0000] \"GET / HTTP/1.1\" 200 - \"-\" \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36\""}}
+[info] i  hosting: ::1 - - [16/Mar/2025:19:49:28 +0000] "GET /favicon.ico HTTP/1.1" 304 - "http://localhost:5002/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [16/Mar/2025:19:49:28 +0000] \"GET /favicon.ico HTTP/1.1\" 304 - \"http://localhost:5002/\" \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36\""}}
