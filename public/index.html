@@ -1,89 +1,246 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
+<head>
+  <meta charset="utf-8"/>
+  <title>Mindful Journal (No NPM)</title>
+</head>
+<body>
+  <h1>Mindful Journal</h1>
+  
+  <!-- Simple UI -->
+  <textarea id="journalContent" placeholder="Write your journal..."></textarea>
+  <br/>
+  <label>
+    <input type="checkbox" id="publicToggle" /> Make Public
+  </label>
+  <br/>
+  <button id="createJournalBtn">Create Journal</button>
+  <p id="statusMsg"></p>
 
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/11.4.0/firebase-app-compat.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/11.4.0/firebase-auth-compat.js"></script>
-    <script defer src="/__/firebase/11.4.0/firebase-database-compat.js"></script>
-    <script defer src="/__/firebase/11.4.0/firebase-firestore-compat.js"></script>
-    <script defer src="/__/firebase/11.4.0/firebase-functions-compat.js"></script>
-    <script defer src="/__/firebase/11.4.0/firebase-messaging-compat.js"></script>
-    <script defer src="/__/firebase/11.4.0/firebase-storage-compat.js"></script>
-    <script defer src="/__/firebase/11.4.0/firebase-analytics-compat.js"></script>
-    <script defer src="/__/firebase/11.4.0/firebase-remote-config-compat.js"></script>
-    <script defer src="/__/firebase/11.4.0/firebase-performance-compat.js"></script>
-    <!-- 
-      initialize the SDK after all desired features are loaded, set useEmulator to false
-      to avoid connecting the SDK to running emulators.
-    -->
-    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+  <!-- Display previous journal entries -->
+  <div id="journals"></div>
 
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
+  <!-- 1. ethers (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.umd.min.js"></script>
+
+  <!-- 2. Firebase (CDN) -->
+  <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-firestore.js"></script>
+
+  <!-- 3. Your Custom JavaScript -->
+  <script>
+    // =======================
+    // Firebase Configuration
+    // =======================
+    const firebaseConfig = {
+      apiKey: "AIzaSyCiawo_DNjM35XQRj-2FcTCmNai0weth7g",
+      authDomain: "mindfuljournal-c5bf0.firebaseapp.com",
+      projectId: "mindfuljournal-c5bf0",
+      storageBucket: "mindfuljournal-c5bf0.appspot.com",
+      messagingSenderId: "983633163512",
+      appId: "1:983633163512:web:4949d3cf427cd9e668f70d",
+      measurementId: "G-8QWRCF39M4"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // =======================
+    // Smart Contract Setup
+    // =======================
+    const contractAddress = "0xD7ACd2a9FD159E69Bb102A1ca21C9a3e3A5F771B";
+    const abi = [
+  {
+    "type": "event",
+    "name": "JournalCreated",
+    "inputs": [
+      { "name": "user", "type": "address", "indexed": false },
+      { "name": "entry_id", "type": "uint256", "indexed": false },
+      { "name": "is_public", "type": "bool", "indexed": false }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "constructor",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      { "name": "_token", "type": "address" },
+      { "name": "_token_required", "type": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "create_journal",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      { "name": "content", "type": "string" },
+      { "name": "is_public", "type": "bool" }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "view_journal",
+    "stateMutability": "view",
+    "inputs": [
+      { "name": "entry_id", "type": "uint256" }
+    ],
+    "outputs": [
+      { "name": "", "type": "string" }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "toggle_privacy",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      { "name": "entry_id", "type": "uint256" }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "journal_token",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      { "name": "", "type": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "journals",
+    "stateMutability": "view",
+    "inputs": [
+      { "name": "arg0", "type": "uint256" }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "components": [
+          { "name": "owner", "type": "address" },
+          { "name": "content", "type": "string" },
+          { "name": "is_public", "type": "bool" }
+        ]
       }
-    </style>
-  </head>
-  <body>
-    <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
-    </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
+    ]
+  },
+  {
+    "type": "function",
+    "name": "user_journal_count",
+    "stateMutability": "view",
+    "inputs": [
+      { "name": "arg0", "type": "address" }
+    ],
+    "outputs": [
+      { "name": "", "type": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "token_required",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      { "name": "", "type": "uint256" }
+    ]
+  }
+];
 
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const loadEl = document.querySelector('#load');
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.firestore().doc('/foo/bar').get().then(() => { });
-        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        // firebase.analytics(); // call to activate
-        // firebase.analytics().logEvent('tutorial_completed');
-        // firebase.performance(); // call to activate
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
 
-        try {
-          let app = firebase.app();
-          let features = [
-            'auth', 
-            'database', 
-            'firestore',
-            'functions',
-            'messaging', 
-            'storage', 
-            'analytics', 
-            'remoteConfig',
-            'performance',
-          ].filter(feature => typeof app[feature] === 'function');
-          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
+    let provider;
+    let signer;
+    let contract;
+
+    // Initialize Ethers.js and Metamask
+    async function initEthers() {
+      if (window.ethereum) {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        contract = new ethers.Contract(contractAddress, abi, signer);
+      } else {
+        alert("Please install Metamask or use a Web3 browser.");
+      }
+    }
+
+    // =======================
+    // Create Journal Function
+    // =======================
+    async function createJournal() {
+      try {
+        const content = document.getElementById("journalContent").value;
+        const isPublic = document.getElementById("publicToggle").checked;
+
+        if (!content.trim()) {
+          alert("Please enter a journal entry.");
+          return;
         }
-      });
-    </script>
-  </body>
+
+        document.getElementById("statusMsg").textContent = "Processing...";
+
+        // 1️⃣ Ensure blockchain connection
+        if (!contract) {
+          await initEthers();
+        }
+
+        // 2️⃣ Submit journal to blockchain
+        let tx = await contract.create_journal(content, isPublic);
+        document.getElementById("statusMsg").textContent = "Transaction sent! Waiting for confirmation...";
+        await tx.wait();
+        document.getElementById("statusMsg").textContent = "Journal entry created on blockchain!";
+
+        // 3️⃣ Save to Firebase Firestore
+        const userAddress = await signer.getAddress();
+        await db.collection("journals").add({
+          owner: userAddress,
+          content: content,
+          is_public: isPublic,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        alert("Journal saved to Firebase!");
+        loadJournals(); // Refresh displayed journals
+
+      } catch (error) {
+        console.error(error);
+        document.getElementById("statusMsg").textContent = "Error creating journal entry.";
+      }
+    }
+
+    // =======================
+    // Load and Display Journals from Firebase
+    // =======================
+    async function loadJournals() {
+      const journalsDiv = document.getElementById("journals");
+      journalsDiv.innerHTML = "<h2>Loading journals...</h2>";
+
+      try {
+        const querySnapshot = await db.collection("journals").orderBy("timestamp", "desc").get();
+
+        journalsDiv.innerHTML = "<h2>Previous Journal Entries:</h2>";
+        querySnapshot.forEach((doc) => {
+          const entry = doc.data();
+          journalsDiv.innerHTML += `
+            <p><strong>${entry.owner}:</strong> ${entry.content} (${entry.is_public ? "Public" : "Private"})</p>
+          `;
+        });
+      } catch (error) {
+        console.error("Error loading journals:", error);
+        journalsDiv.innerHTML = "<p>Error loading journals.</p>";
+      }
+    }
+
+    // =======================
+    // Event Listeners
+    // =======================
+    document.getElementById("createJournalBtn").addEventListener("click", createJournal);
+
+    // Auto-load journals on page load
+    window.onload = loadJournals;
+  </script>
+
+</body>
 </html>
