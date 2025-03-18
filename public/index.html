@@ -264,6 +264,32 @@
   border-radius: 4px;
   margin-left: 5px;
 }
+
+.tx-info a, .block-info a {
+  color: #3498db;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.tx-info a:hover, .block-info a:hover {
+  color: #2980b9;
+  text-decoration: underline;
+}
+
+.tx-info {
+  font-size: 12px;
+  color: #777;
+  margin-top: 8px;
+  font-family: monospace;
+}
+
+.block-info {
+  font-size: 12px;
+  background-color: #e3f2fd;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 5px;
+}
     </style>
   </head>
   <body>
@@ -304,7 +330,22 @@
     </div>
 
    <!-- Scripts -->
-<script src="https://cdn.ethers.org/lib/ethers-5.7.2.umd.min.js" type="application/javascript"></script>
+   <script>
+    // Check if ethers loaded, if not, try alternative CDN
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof ethers === 'undefined') {
+        console.log("Ethers not loaded, trying alternative source");
+        var script = document.createElement('script');
+        script.src = "https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js";
+        script.type = "text/javascript";
+        script.onload = function() {
+          console.log("Alternative ethers loaded successfully");
+        };
+        document.head.appendChild(script);
+      }
+    });
+  </script> 
+<script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="text/javascript"></script>
 <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-firestore-compat.js"></script>
 
@@ -575,13 +616,11 @@ async function loadJournals() {
   journalsDiv.innerHTML = "<p class='loading'>Loading journals...</p>";
 
   try {
-    // Only load if we have a connected wallet
     if (!userAddress) {
       journalsDiv.innerHTML = "<p>Connect your wallet to view journals</p>";
       return;
     }
     
-    // Query journals by the current user
     const querySnapshot = await db.collection("journals")
       .where("owner", "==", userAddress)
       .orderBy("timestamp", "desc")
@@ -592,14 +631,43 @@ async function loadJournals() {
       return;
     }
 
-    // Clear previous entries
     journalsDiv.innerHTML = "";
     
-    // Display journals
+    // Get current network ID to determine which Etherscan domain to use
+    let etherscanDomain = "https://sepolia.etherscan.io";
+    try {
+      const networkId = await provider.getNetwork();
+      if (networkId.chainId === 1) {
+        etherscanDomain = "https://etherscan.io";
+      } else if (networkId.chainId === 137) {
+        etherscanDomain = "https://polygonscan.com";
+      } else if (networkId.chainId === 11155111) {
+        etherscanDomain = "https://sepolia.etherscan.io";
+      }
+      // Add other networks as needed
+    } catch (e) {
+      console.error("Could not determine network:", e);
+    }
+    
     querySnapshot.forEach((doc) => {
       const entry = doc.data();
       const timestamp = entry.timestamp ? formatDate(entry.timestamp) : 'Just now';
-      const blockInfo = entry.block_number ? `<span class="block-info">Block #${entry.block_number}</span>` : '';
+      
+      // Create block link if block number exists
+      const blockInfo = entry.block_number ? 
+        `<span class="block-info">
+           <a href="${etherscanDomain}/block/${entry.block_number}" target="_blank" rel="noopener noreferrer">
+             Block #${entry.block_number}
+           </a>
+         </span>` : '';
+      
+      // Create transaction link if tx hash exists
+      const txInfo = entry.tx_hash ? 
+        `<div class="tx-info">
+           <a href="${etherscanDomain}/tx/${entry.tx_hash}" target="_blank" rel="noopener noreferrer">
+             View on Etherscan: ${entry.tx_hash.substring(0, 10)}...
+           </a>
+         </div>` : '';
       
       journalsDiv.innerHTML += `
         <div class="journal-entry">
@@ -610,7 +678,7 @@ async function loadJournals() {
             </span>
           </div>
           <div class="journal-content">${entry.content}</div>
-          ${entry.tx_hash ? `<div class="tx-info">Transaction: ${entry.tx_hash.substring(0, 10)}...</div>` : ''}
+          ${txInfo}
         </div>
       `;
     });
