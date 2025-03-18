@@ -424,13 +424,13 @@
     // Check if MetaMask is installed
     if (!window.ethereum) {
       alert("Please install MetaMask or use a Web3 browser to use this app.");
-      return;
+      return false;
     }
     
     console.log("Requesting accounts...");
     
     try {
-      // Request accounts access - this opens the MetaMask popup
+      // Request accounts access
       const accounts = await window.ethereum.request({ 
         method: 'eth_requestAccounts' 
       });
@@ -438,19 +438,17 @@
       console.log("Accounts received:", accounts);
       
       if (accounts && accounts.length > 0) {
-        // Set up provider AFTER we have accounts
+        // Set up provider
         provider = new ethers.providers.Web3Provider(window.ethereum);
         signer = provider.getSigner();
         
-        // Initialize contract with logging
-        console.log("Contract address:", contractAddress);
-        console.log("ABI:", abi);
+        // Get actual account from signer to ensure correct case
+        userAddress = await signer.getAddress();
+        console.log("Signer address:", userAddress);
+        
+        // Initialize contract
         contract = new ethers.Contract(contractAddress, abi, signer);
         console.log("Contract initialized:", contract);
-        
-        userAddress = accounts[0];
-        
-        console.log("Connected to address:", userAddress);
         
         // Update UI to show connected state
         document.getElementById('walletStatus').textContent = truncateAddress(userAddress);
@@ -460,9 +458,6 @@
         // Show journal form, hide connect prompt
         document.getElementById('journalForm').style.display = 'block';
         document.getElementById('connectPrompt').style.display = 'none';
-        
-        // Test contract
-        console.log("Testing contract methods:", Object.keys(contract));
         
         // Load journals
         loadJournals();
@@ -564,50 +559,73 @@ async function createJournal() {
       }
     }
 
-    // Verify contract is initialized
-    console.log("Contract status:", contract);
-    
-    if (!contract || typeof contract.create_journal !== 'function') {
-      // Reinitialize contract
-      console.log("Reinitializing contract...");
-      if (window.ethereum && userAddress) {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        signer = provider.getSigner();
-        contract = new ethers.Contract(contractAddress, abi, signer);
-      } else {
-        throw new Error("Unable to initialize contract. Please reconnect your wallet.");
-      }
-    }
-
     // Submit journal to blockchain
     document.getElementById('statusMsg').textContent = "Sending transaction to blockchain...";
-    let tx = await contract.create_journal(content, isPublic);
-    document.getElementById('statusMsg').textContent = `Transaction sent! Waiting for confirmation... Tx hash: ${tx.hash.substring(0, 10)}...`;
     
-    // Wait for transaction confirmation
-    const receipt = await tx.wait();
-    
-    // Save to Firebase
-    await db.collection("journals").add({
-      owner: userAddress,
-      content: content,
-      is_public: isPublic,
-      tx_hash: tx.hash,
-      block_number: receipt.blockNumber,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    
-    document.getElementById('statusMsg').textContent = `Journal entry saved successfully! Block #${receipt.blockNumber}`;
-    document.getElementById('journalContent').value = "";
-    document.getElementById('createJournalBtn').disabled = false;
-    
-    // Reload journals
-    loadJournals();
-    
+    try {
+      // Ensure we're using fresh contract instance
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      signer = provider.getSigner();
+      contract = new ethers.Contract(contractAddress, abi, signer);
+      
+      let tx = await contract.create_journal(content, isPublic);
+      console.log("Transaction sent:", tx.hash);
+      document.getElementById('statusMsg').textContent = `Transaction sent! Waiting for confirmation... Tx hash: ${tx.hash.substring(0, 10)}...`;
+      
+      // Wait for transaction confirmation
+      const receipt = await tx.wait();
+      console.log("Transaction confirmed in block:", receipt.blockNumber);
+      console.log("Full receipt:", receipt);
+      
+      // Get network information
+      const network = await provider.getNetwork();
+      console.log("Current network:", network.chainId);
+      
+      // Determine Etherscan domain
+      let etherscanDomain = "https://sepolia.etherscan.io";
+      if (network.chainId === 1) {
+        etherscanDomain = "https://etherscan.io";
+      } else if (network.chainId === 137) {
+        etherscanDomain = "https://polygonscan.com";
+      } else if (network.chainId === 11155111) {
+        etherscanDomain = "https://sepolia.etherscan.io";
+      }
+      
+      // Save to Firebase with all required data
+      const journalEntry = {
+        owner: userAddress,
+        lowercaseOwner: userAddress.toLowerCase(), // Add a lowercase field for querying
+        content: content,
+        is_public: isPublic,
+        tx_hash: tx.hash,
+        block_number: receipt.blockNumber,
+        network_id: network.chainId,
+        etherscan_domain: etherscanDomain, // Store the domain directly
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
+      console.log("Saving journal entry to Firebase:", journalEntry);
+      
+      await db.collection("journals").add(journalEntry);
+      
+      document.getElementById('statusMsg').textContent = `Journal entry saved successfully! Block #${receipt.blockNumber}`;
+      document.getElementById('journalContent').value = "";
+      document.getElementById('publicToggle').checked = false;
+      
+      // Show direct link in the UI
+      const txLink = `${etherscanDomain}/tx/${tx.hash}`;
+      document.getElementById('statusMsg').innerHTML = `Journal entry saved successfully! Block #${receipt.blockNumber}. <a href="${txLink}" target="_blank">View on Etherscan</a>`;
+    } catch (txError) {
+      console.error("Transaction error:", txError);
+      document.getElementById('statusMsg').textContent = `Transaction error: ${txError.message}`;
+    }
   } catch (error) {
     console.error('Error creating journal:', error);
     document.getElementById('statusMsg').textContent = 'Error creating journal: ' + error.message;
+  } finally {
     document.getElementById('createJournalBtn').disabled = false;
+    // Always try to load journals after an operation
+    loadJournals();
   }
 }
 
@@ -621,10 +639,49 @@ async function loadJournals() {
       return;
     }
     
-    const querySnapshot = await db.collection("journals")
-      .where("owner", "==", userAddress)
-      .orderBy("timestamp", "desc")
-      .get();
+    console.log("Looking for journals for address:", userAddress);
+    console.log("Lowercase address:", userAddress.toLowerCase());
+    
+    // Try different query approaches
+    let querySnapshot;
+    
+    try {
+      // First try with lowercase field
+      querySnapshot = await db.collection("journals")
+        .where("lowercaseOwner", "==", userAddress.toLowerCase())
+        .orderBy("timestamp", "desc")
+        .get();
+      
+      console.log("Query with lowercaseOwner returned:", querySnapshot.size, "results");
+      
+      // If no results, try with regular owner field
+      if (querySnapshot.empty) {
+        querySnapshot = await db.collection("journals")
+          .where("owner", "==", userAddress)
+          .orderBy("timestamp", "desc")
+          .get();
+        
+        console.log("Query with owner returned:", querySnapshot.size, "results");
+        
+        // If still no results, try with lowercase address
+        if (querySnapshot.empty) {
+          querySnapshot = await db.collection("journals")
+            .where("owner", "==", userAddress.toLowerCase())
+            .orderBy("timestamp", "desc")
+            .get();
+          
+          console.log("Query with lowercase address returned:", querySnapshot.size, "results");
+        }
+      }
+    } catch (queryError) {
+      console.error("Query error:", queryError);
+      // If there's an error with the compound query, try without ordering
+      querySnapshot = await db.collection("journals")
+        .where("owner", "==", userAddress)
+        .get();
+      
+      console.log("Fallback query returned:", querySnapshot.size, "results");
+    }
     
     if (querySnapshot.empty) {
       journalsDiv.innerHTML = "<p>No journal entries yet. Start writing!</p>";
@@ -633,58 +690,115 @@ async function loadJournals() {
 
     journalsDiv.innerHTML = "";
     
-    // Get current network ID to determine which Etherscan domain to use
-    let etherscanDomain = "https://sepolia.etherscan.io";
+    // Get current network ID for default Etherscan domain
+    let defaultEtherscanDomain = "https://sepolia.etherscan.io"; // Default to Sepolia
+    
     try {
       const networkId = await provider.getNetwork();
       if (networkId.chainId === 1) {
-        etherscanDomain = "https://etherscan.io";
+        defaultEtherscanDomain = "https://etherscan.io";
       } else if (networkId.chainId === 137) {
-        etherscanDomain = "https://polygonscan.com";
-      } else if (networkId.chainId === 11155111) {
-        etherscanDomain = "https://sepolia.etherscan.io";
+        defaultEtherscanDomain = "https://polygonscan.com";
       }
-      // Add other networks as needed
     } catch (e) {
       console.error("Could not determine network:", e);
     }
     
+    console.log("Default Etherscan domain:", defaultEtherscanDomain);
+    
     querySnapshot.forEach((doc) => {
-      const entry = doc.data();
-      const timestamp = entry.timestamp ? formatDate(entry.timestamp) : 'Just now';
-      
-      // Create block link if block number exists
-      const blockInfo = entry.block_number ? 
-        `<span class="block-info">
-           <a href="${etherscanDomain}/block/${entry.block_number}" target="_blank" rel="noopener noreferrer">
-             Block #${entry.block_number}
-           </a>
-         </span>` : '';
-      
-      // Create transaction link if tx hash exists
-      const txInfo = entry.tx_hash ? 
-        `<div class="tx-info">
-           <a href="${etherscanDomain}/tx/${entry.tx_hash}" target="_blank" rel="noopener noreferrer">
-             View on Etherscan: ${entry.tx_hash.substring(0, 10)}...
-           </a>
-         </div>` : '';
-      
-      journalsDiv.innerHTML += `
-        <div class="journal-entry">
-          <div class="journal-meta">
-            <span class="entry-date">${timestamp} ${blockInfo}</span>
-            <span class="privacy-tag ${entry.is_public ? 'public' : 'private'}">
-              ${entry.is_public ? 'Public' : 'Private'}
-            </span>
+      try {
+        const entry = doc.data();
+        logEntry(entry); // Log each entry for debugging
+        
+        const timestamp = entry.timestamp ? formatDate(entry.timestamp) : 'Just now';
+        
+        // Determine the appropriate Etherscan domain
+        let entryEtherscanDomain = defaultEtherscanDomain;
+        
+        // Use stored domain if available, otherwise determine from network ID
+        if (entry.etherscan_domain) {
+          entryEtherscanDomain = entry.etherscan_domain;
+        } else if (entry.network_id) {
+          if (entry.network_id === 1) {
+            entryEtherscanDomain = "https://etherscan.io";
+          } else if (entry.network_id === 137) {
+            entryEtherscanDomain = "https://polygonscan.com";
+          } else if (entry.network_id === 11155111) {
+            entryEtherscanDomain = "https://sepolia.etherscan.io";
+          }
+        }
+        
+        console.log(`Entry Etherscan domain: ${entryEtherscanDomain} for tx ${entry.tx_hash?.substring(0, 10)}`);
+        
+        // Create block link if block number exists
+        let blockInfo = '';
+        if (entry.block_number) {
+          const blockUrl = `${entryEtherscanDomain}/block/${entry.block_number}`;
+          blockInfo = `
+            <span class="block-info">
+              <a href="${blockUrl}" target="_blank" rel="noopener noreferrer">
+                Block #${entry.block_number}
+              </a>
+            </span>`;
+          console.log("Block URL:", blockUrl);
+        }
+        
+        // Create transaction link if tx hash exists
+        let txInfo = '';
+        if (entry.tx_hash) {
+          const txUrl = `${entryEtherscanDomain}/tx/${entry.tx_hash}`;
+          txInfo = `
+            <div class="tx-info">
+              <a href="${txUrl}" target="_blank" rel="noopener noreferrer">
+                View on Etherscan: ${entry.tx_hash.substring(0, 10)}...
+              </a>
+            </div>`;
+          console.log("Transaction URL:", txUrl);
+        }
+        
+        journalsDiv.innerHTML += `
+          <div class="journal-entry">
+            <div class="journal-meta">
+              <span class="entry-date">${timestamp} ${blockInfo}</span>
+              <span class="privacy-tag ${entry.is_public ? 'public' : 'private'}">
+                ${entry.is_public ? 'Public' : 'Private'}
+              </span>
+            </div>
+            <div class="journal-content">${entry.content}</div>
+            ${txInfo}
           </div>
-          <div class="journal-content">${entry.content}</div>
-          ${txInfo}
-        </div>
-      `;
+        `;
+      } catch (renderError) {
+        console.error("Error rendering entry:", renderError);
+      }
     });
   } catch (error) {
     console.error("Error loading journals:", error);
-    journalsDiv.innerHTML = "<p>Error loading journals. Please try again.</p>";
+    journalsDiv.innerHTML = `<p>Error loading journals: ${error.message}. Please try again.</p>`;
+  }
+}
+
+async function createIndexes() {
+  try {
+    // This function doesn't actually create indexes, but it explains what needs to be done
+    console.log("To ensure Firestore queries work correctly, you need to create the following indexes:");
+    console.log("1. Collection: journals, Fields: lowercaseOwner ASC, timestamp DESC");
+    console.log("2. Collection: journals, Fields: owner ASC, timestamp DESC");
+    
+    // Instructions for the user
+    document.getElementById('statusMsg').innerHTML = `
+      <div style="background:#fff3cd;padding:10px;border-radius:5px;">
+        <p><strong>Important:</strong> If you're seeing query errors, you may need to create indexes in your Firestore database.</p>
+        <p>Go to your Firebase console > Firestore Database > Indexes tab and add these composite indexes:</p>
+        <ul>
+          <li>Collection: journals, Fields: lowercaseOwner ASC, timestamp DESC</li>
+          <li>Collection: journals, Fields: owner ASC, timestamp DESC</li>
+        </ul>
+      </div>
+    `;
+  } catch (error) {
+    console.error("Error displaying index info:", error);
   }
 }
 
@@ -698,6 +812,18 @@ async function loadJournals() {
     const date = timestamp.toDate();
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   }
+
+  function logEntry(entry) {
+  console.log("Entry data:", {
+    owner: entry.owner,
+    content: entry.content?.substring(0, 30) + "...",
+    isPublic: entry.is_public,
+    txHash: entry.tx_hash,
+    blockNumber: entry.block_number,
+    networkId: entry.network_id,
+    timestamp: entry.timestamp
+  });
+}
 
   // Event Listeners
 document.addEventListener('DOMContentLoaded', async function() {
