@@ -327,6 +327,11 @@
         <h2>Your Journal Entries</h2>
         <div id="journals"></div>
       </div>
+
+      <div class="journals-container">
+        <h2>Public Journal Entries</h2>
+        <div id="publicJournals"></div>
+      </div>
     </div>
 
    <!-- Scripts -->
@@ -486,25 +491,27 @@ if (window.ethereum) {
   
   // Detect account changes
   window.ethereum.on('accountsChanged', function(accounts) {
-    console.log("Accounts changed:", accounts);
-    if (accounts.length > 0) {
-      userAddress = accounts[0];
-      document.getElementById('walletStatus').textContent = truncateAddress(userAddress);
-      document.getElementById('connectionIndicator').classList.add('connected');
-      document.getElementById('connectWalletBtn').textContent = 'Connected';
-      document.getElementById('journalForm').style.display = 'block';
-      document.getElementById('connectPrompt').style.display = 'none';
-      loadJournals();
-    } else {
-      // User disconnected all accounts
-      userAddress = null;
-      document.getElementById('walletStatus').textContent = 'Wallet not connected';
-      document.getElementById('connectionIndicator').classList.remove('connected');
-      document.getElementById('connectWalletBtn').textContent = 'Connect';
-      document.getElementById('journalForm').style.display = 'none';
-      document.getElementById('connectPrompt').style.display = 'block';
-    }
-  });
+  console.log("Accounts changed:", accounts);
+  if (accounts.length > 0) {
+    userAddress = accounts[0];
+    document.getElementById('walletStatus').textContent = truncateAddress(userAddress);
+    document.getElementById('connectionIndicator').classList.add('connected');
+    document.getElementById('connectWalletBtn').textContent = 'Connected';
+    document.getElementById('journalForm').style.display = 'block';
+    document.getElementById('connectPrompt').style.display = 'none';
+    loadJournals();
+  } else {
+    // User disconnected all accounts
+    userAddress = null;
+    document.getElementById('walletStatus').textContent = 'Wallet not connected';
+    document.getElementById('connectionIndicator').classList.remove('connected');
+    document.getElementById('connectWalletBtn').textContent = 'Connect';
+    document.getElementById('journalForm').style.display = 'none';
+    document.getElementById('connectPrompt').style.display = 'block';
+  }
+  // Always load public journals, regardless of wallet connection
+  loadPublicJournals();
+});
   
   // Detect network changes
   window.ethereum.on('chainChanged', function() {
@@ -568,6 +575,9 @@ async function createJournal() {
       signer = provider.getSigner();
       contract = new ethers.Contract(contractAddress, abi, signer);
       
+      // Get the actual address with correct case from signer
+      userAddress = await signer.getAddress();
+      
       let tx = await contract.create_journal(content, isPublic);
       console.log("Transaction sent:", tx.hash);
       document.getElementById('statusMsg').textContent = `Transaction sent! Waiting for confirmation... Tx hash: ${tx.hash.substring(0, 10)}...`;
@@ -626,6 +636,8 @@ async function createJournal() {
     document.getElementById('createJournalBtn').disabled = false;
     // Always try to load journals after an operation
     loadJournals();
+    // Also load public journals
+    loadPublicJournals();
   }
 }
 
@@ -640,6 +652,17 @@ async function loadJournals() {
     }
     
     console.log("Looking for journals for address:", userAddress);
+    
+    // Get the address with the correct case from the signer
+    try {
+      const signerAddress = await signer.getAddress();
+      userAddress = signerAddress; // Update the global userAddress
+      console.log("Updated user address with correct case:", userAddress);
+    } catch (signerError) {
+      console.error("Error getting address from signer:", signerError);
+      // Continue with existing address if signer fails
+    }
+    
     console.log("Lowercase address:", userAddress.toLowerCase());
     
     // Try different query approaches
@@ -677,7 +700,7 @@ async function loadJournals() {
       console.error("Query error:", queryError);
       // If there's an error with the compound query, try without ordering
       querySnapshot = await db.collection("journals")
-        .where("owner", "==", userAddress)
+        .where("lowercaseOwner", "==", userAddress.toLowerCase())
         .get();
       
       console.log("Fallback query returned:", querySnapshot.size, "results");
@@ -802,6 +825,80 @@ async function createIndexes() {
   }
 }
 
+async function loadPublicJournals() {
+  const publicJournalsDiv = document.getElementById('publicJournals');
+  publicJournalsDiv.innerHTML = "<p class='loading'>Loading public journals...</p>";
+
+  try {
+    // Query for all public journal entries
+    const querySnapshot = await db.collection("journals")
+      .where("is_public", "==", true)
+      .orderBy("timestamp", "desc")
+      .limit(20) // Limit to avoid loading too many entries
+      .get();
+    
+    if (querySnapshot.empty) {
+      publicJournalsDiv.innerHTML = "<p>No public journal entries yet.</p>";
+      return;
+    }
+
+    publicJournalsDiv.innerHTML = "";
+    
+    // Default Etherscan domain
+    let defaultEtherscanDomain = "https://sepolia.etherscan.io";
+    
+    querySnapshot.forEach((doc) => {
+      try {
+        const entry = doc.data();
+        const timestamp = entry.timestamp ? formatDate(entry.timestamp) : 'Just now';
+        
+        // Determine the appropriate Etherscan domain
+        let entryEtherscanDomain = entry.etherscan_domain || defaultEtherscanDomain;
+        
+        // Create block link if block number exists
+        let blockInfo = '';
+        if (entry.block_number) {
+          const blockUrl = `${entryEtherscanDomain}/block/${entry.block_number}`;
+          blockInfo = `
+            <span class="block-info">
+              <a href="${blockUrl}" target="_blank" rel="noopener noreferrer">
+                Block #${entry.block_number}
+              </a>
+            </span>`;
+        }
+        
+        // Create transaction link if tx hash exists
+        let txInfo = '';
+        if (entry.tx_hash) {
+          const txUrl = `${entryEtherscanDomain}/tx/${entry.tx_hash}`;
+          txInfo = `
+            <div class="tx-info">
+              <a href="${txUrl}" target="_blank" rel="noopener noreferrer">
+                View on Etherscan: ${entry.tx_hash.substring(0, 10)}...
+              </a>
+            </div>`;
+        }
+        
+        publicJournalsDiv.innerHTML += `
+          <div class="journal-entry">
+            <div class="journal-meta">
+              <span class="entry-date">${timestamp} ${blockInfo}</span>
+              <span class="truncated-address">By: ${truncateAddress(entry.owner)}</span>
+            </div>
+            <div class="journal-content">${entry.content}</div>
+            ${txInfo}
+          </div>
+        `;
+      } catch (renderError) {
+        console.error("Error rendering public entry:", renderError);
+      }
+    });
+  } catch (error) {
+    console.error("Error loading public journals:", error);
+    publicJournalsDiv.innerHTML = `<p>Error loading public journals: ${error.message}. Please try again.</p>`;
+  }
+}
+
   // Helper Functions
   function truncateAddress(address) {
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
@@ -826,10 +923,13 @@ async function createIndexes() {
 }
 
   // Event Listeners
-document.addEventListener('DOMContentLoaded', async function() {
+  document.addEventListener('DOMContentLoaded', async function() {
   document.getElementById('connectWalletBtn').addEventListener('click', connectWallet);
   document.getElementById('promptConnectBtn').addEventListener('click', connectWallet);
   document.getElementById('createJournalBtn').addEventListener('click', createJournal);
+  
+  // Load public journals immediately, regardless of wallet connection
+  loadPublicJournals();
   
   // Check if wallet is already connected
   if (window.ethereum) {
@@ -839,8 +939,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Set up provider with existing connection
         provider = new ethers.providers.Web3Provider(window.ethereum);
         signer = provider.getSigner();
+        userAddress = await signer.getAddress(); // Get the actual address with correct case
         contract = new ethers.Contract(contractAddress, abi, signer);
-        userAddress = accounts[0];
         
         // Update UI for connected state
         document.getElementById('walletStatus').textContent = truncateAddress(userAddress);
