@@ -828,7 +828,7 @@ async function createIndexes() {
 async function loadPublicJournals() {
   const publicJournalsDiv = document.getElementById('publicJournals');
   publicJournalsDiv.innerHTML = "<p class='loading'>Loading public journals...</p>";
-
+  
   try {
     // Query for all public journal entries
     const querySnapshot = await db.collection("journals")
