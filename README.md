@@ -1,3 +1,4 @@
+https://mindfuljournal-c5bf0.web.app/
 # Mindful Journal
 
 A decentralized journaling application that allows users to record their thoughts and reflections securely on the blockchain, with options for private or public entries.
