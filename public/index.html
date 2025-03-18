@@ -249,6 +249,21 @@
           width: 100%;
         }
       }
+
+      .tx-info {
+  font-size: 12px;
+  color: #777;
+  margin-top: 8px;
+  font-family: monospace;
+}
+
+.block-info {
+  font-size: 12px;
+  background-color: #e3f2fd;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 5px;
+}
     </style>
   </head>
   <body>
@@ -289,7 +304,7 @@
     </div>
 
    <!-- Scripts -->
-<script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="application/javascript"></script>
+<script src="https://cdn.ethers.org/lib/ethers-5.7.2.umd.min.js" type="application/javascript"></script>
 <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-firestore-compat.js"></script>
 
@@ -360,8 +375,7 @@
   let contract;
   let userAddress = null;
 
-  // Replace the entire connectWallet function with this version
-async function connectWallet() {
+  async function connectWallet() {
   try {
     // Clear any previous status messages
     document.getElementById('statusMsg').textContent = '';
@@ -386,7 +400,13 @@ async function connectWallet() {
         // Set up provider AFTER we have accounts
         provider = new ethers.providers.Web3Provider(window.ethereum);
         signer = provider.getSigner();
+        
+        // Initialize contract with logging
+        console.log("Contract address:", contractAddress);
+        console.log("ABI:", abi);
         contract = new ethers.Contract(contractAddress, abi, signer);
+        console.log("Contract initialized:", contract);
+        
         userAddress = accounts[0];
         
         console.log("Connected to address:", userAddress);
@@ -400,19 +420,27 @@ async function connectWallet() {
         document.getElementById('journalForm').style.display = 'block';
         document.getElementById('connectPrompt').style.display = 'none';
         
+        // Test contract
+        console.log("Testing contract methods:", Object.keys(contract));
+        
         // Load journals
         loadJournals();
+        
+        return true;
       } else {
         console.error("No accounts received");
         document.getElementById('statusMsg').textContent = 'No accounts received. Please unlock MetaMask.';
+        return false;
       }
     } catch (connectionError) {
       console.error("Connection error:", connectionError);
       document.getElementById('statusMsg').textContent = 'Connection error: ' + connectionError.message;
+      return false;
     }
   } catch (outerError) {
     console.error('Overall error:', outerError);
     document.getElementById('statusMsg').textContent = 'Error: ' + outerError.message;
+    return false;
   }
 }
 
@@ -469,103 +497,128 @@ if (window.ethereum) {
     .catch(error => console.error("Error checking initial accounts:", error));
 }
 
-  // Create Journal Function
-  async function createJournal() {
-    try {
-      const content = document.getElementById('journalContent').value;
-      const isPublic = document.getElementById('publicToggle').checked;
+async function createJournal() {
+  try {
+    const content = document.getElementById('journalContent').value;
+    const isPublic = document.getElementById('publicToggle').checked;
 
-      if (!content.trim()) {
-        alert("Please enter a journal entry.");
-        return;
-      }
-
-      // Disable button and show status
-      document.getElementById('createJournalBtn').disabled = true;
-      document.getElementById('statusMsg').textContent = "Processing your journal entry...";
-
-      // Check connection
-      if (!userAddress) {
-        await connectWallet();
-      }
-
-      // Submit journal to blockchain
-      let tx = await contract.create_journal(content, isPublic);
-      document.getElementById('statusMsg').textContent = "Transaction sent! Waiting for confirmation...";
-      
-      // Wait for transaction confirmation
-      await tx.wait();
-      
-      // Save to Firebase
-      await db.collection("journals").add({
-        owner: userAddress,
-        content: content,
-        is_public: isPublic,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      
-      document.getElementById('statusMsg').textContent = "Journal entry saved successfully!";
-      document.getElementById('journalContent').value = "";
-      document.getElementById('createJournalBtn').disabled = false;
-      
-      // Reload journals
-      loadJournals();
-      
-    } catch (error) {
-      console.error('Error creating journal:', error);
-      document.getElementById('statusMsg').textContent = 'Error creating journal: ' + error.message;
-      document.getElementById('createJournalBtn').disabled = false;
+    if (!content.trim()) {
+      alert("Please enter a journal entry.");
+      return;
     }
+
+    // Disable button and show status
+    document.getElementById('createJournalBtn').disabled = true;
+    document.getElementById('statusMsg').textContent = "Processing your journal entry...";
+
+    // Check connection and reinitialize if necessary
+    if (!userAddress || !contract) {
+      document.getElementById('statusMsg').textContent = "Reconnecting to wallet...";
+      await connectWallet();
+      
+      if (!userAddress || !contract) {
+        document.getElementById('statusMsg').textContent = "Please connect your wallet first";
+        document.getElementById('createJournalBtn').disabled = false;
+        return;
+      }
+    }
+
+    // Verify contract is initialized
+    console.log("Contract status:", contract);
+    
+    if (!contract || typeof contract.create_journal !== 'function') {
+      // Reinitialize contract
+      console.log("Reinitializing contract...");
+      if (window.ethereum && userAddress) {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+        contract = new ethers.Contract(contractAddress, abi, signer);
+      } else {
+        throw new Error("Unable to initialize contract. Please reconnect your wallet.");
+      }
+    }
+
+    // Submit journal to blockchain
+    document.getElementById('statusMsg').textContent = "Sending transaction to blockchain...";
+    let tx = await contract.create_journal(content, isPublic);
+    document.getElementById('statusMsg').textContent = `Transaction sent! Waiting for confirmation... Tx hash: ${tx.hash.substring(0, 10)}...`;
+    
+    // Wait for transaction confirmation
+    const receipt = await tx.wait();
+    
+    // Save to Firebase
+    await db.collection("journals").add({
+      owner: userAddress,
+      content: content,
+      is_public: isPublic,
+      tx_hash: tx.hash,
+      block_number: receipt.blockNumber,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    document.getElementById('statusMsg').textContent = `Journal entry saved successfully! Block #${receipt.blockNumber}`;
+    document.getElementById('journalContent').value = "";
+    document.getElementById('createJournalBtn').disabled = false;
+    
+    // Reload journals
+    loadJournals();
+    
+  } catch (error) {
+    console.error('Error creating journal:', error);
+    document.getElementById('statusMsg').textContent = 'Error creating journal: ' + error.message;
+    document.getElementById('createJournalBtn').disabled = false;
   }
+}
 
-  // Load Journals Function
-  async function loadJournals() {
-    const journalsDiv = document.getElementById('journals');
-    journalsDiv.innerHTML = "<p class='loading'>Loading journals...</p>";
+async function loadJournals() {
+  const journalsDiv = document.getElementById('journals');
+  journalsDiv.innerHTML = "<p class='loading'>Loading journals...</p>";
 
-    try {
-      // Only load if we have a connected wallet
-      if (!userAddress) {
-        journalsDiv.innerHTML = "<p>Connect your wallet to view journals</p>";
-        return;
-      }
-      
-      // Query journals by the current user
-      const querySnapshot = await db.collection("journals")
-        .where("owner", "==", userAddress)
-        .orderBy("timestamp", "desc")
-        .get();
-      
-      if (querySnapshot.empty) {
-        journalsDiv.innerHTML = "<p>No journal entries yet. Start writing!</p>";
-        return;
-      }
+  try {
+    // Only load if we have a connected wallet
+    if (!userAddress) {
+      journalsDiv.innerHTML = "<p>Connect your wallet to view journals</p>";
+      return;
+    }
+    
+    // Query journals by the current user
+    const querySnapshot = await db.collection("journals")
+      .where("owner", "==", userAddress)
+      .orderBy("timestamp", "desc")
+      .get();
+    
+    if (querySnapshot.empty) {
+      journalsDiv.innerHTML = "<p>No journal entries yet. Start writing!</p>";
+      return;
+    }
 
-      // Clear previous entries
-      journalsDiv.innerHTML = "";
+    // Clear previous entries
+    journalsDiv.innerHTML = "";
+    
+    // Display journals
+    querySnapshot.forEach((doc) => {
+      const entry = doc.data();
+      const timestamp = entry.timestamp ? formatDate(entry.timestamp) : 'Just now';
+      const blockInfo = entry.block_number ? `<span class="block-info">Block #${entry.block_number}</span>` : '';
       
-      // Display journals
-      querySnapshot.forEach((doc) => {
-        const entry = doc.data();
-        const timestamp = entry.timestamp ? formatDate(entry.timestamp) : 'Just now';
-        
-        journalsDiv.innerHTML += `
-          <div class="journal-entry">
-            <div class="journal-meta">
-              <span class="entry-date">${timestamp}</span>
-              <span class="privacy-tag ${entry.is_public ? 'public' : 'private'}">
-                ${entry.is_public ? 'Public' : 'Private'}
-              </span>
-            </div>
-            <div class="journal-content">${entry.content}</div>
+      journalsDiv.innerHTML += `
+        <div class="journal-entry">
+          <div class="journal-meta">
+            <span class="entry-date">${timestamp} ${blockInfo}</span>
+            <span class="privacy-tag ${entry.is_public ? 'public' : 'private'}">
+              ${entry.is_public ? 'Public' : 'Private'}
+            </span>
           </div>
-        `;
-      });
-    } catch (error) {
-      console.error("Error loading journals:", error);
-      journalsDiv.innerHTML = "<p>Error loading journals. Please try again.</p>";
-    }
+          <div class="journal-content">${entry.content}</div>
+          ${entry.tx_hash ? `<div class="tx-info">Transaction: ${entry.tx_hash.substring(0, 10)}...</div>` : ''}
+        </div>
+      `;
+    });
+  } catch (error) {
+    console.error("Error loading journals:", error);
+    journalsDiv.innerHTML = "<p>Error loading journals. Please try again.</p>";
   }
+}
 
   // Helper Functions
   function truncateAddress(address) {
@@ -579,14 +632,35 @@ if (window.ethereum) {
   }
 
   // Event Listeners
-  document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('connectWalletBtn').addEventListener('click', connectWallet);
-    document.getElementById('promptConnectBtn').addEventListener('click', connectWallet);
-    document.getElementById('createJournalBtn').addEventListener('click', createJournal);
-    
-    // Check if wallet is already connected
-    if (window.ethereum && window.ethereum.selectedAddress) {
-      connectWallet();
+document.addEventListener('DOMContentLoaded', async function() {
+  document.getElementById('connectWalletBtn').addEventListener('click', connectWallet);
+  document.getElementById('promptConnectBtn').addEventListener('click', connectWallet);
+  document.getElementById('createJournalBtn').addEventListener('click', createJournal);
+  
+  // Check if wallet is already connected
+  if (window.ethereum) {
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+      if (accounts && accounts.length > 0) {
+        // Set up provider with existing connection
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+        contract = new ethers.Contract(contractAddress, abi, signer);
+        userAddress = accounts[0];
+        
+        // Update UI for connected state
+        document.getElementById('walletStatus').textContent = truncateAddress(userAddress);
+        document.getElementById('connectionIndicator').classList.add('connected');
+        document.getElementById('connectWalletBtn').textContent = 'Connected';
+        document.getElementById('journalForm').style.display = 'block';
+        document.getElementById('connectPrompt').style.display = 'none';
+        
+        // Load journals for the connected account
+        loadJournals();
+      }
+    } catch (error) {
+      console.error("Error checking initial wallet state:", error);
     }
-  });
+  }
+});
 </script>
