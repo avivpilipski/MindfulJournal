@@ -290,6 +290,86 @@
   border-radius: 4px;
   margin-left: 5px;
 }
+
+/* Mood Tracker Styles */
+.mood-selector {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.mood-option {
+  border: 2px solid #ddd;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 24px;
+  transition: all 0.2s ease;
+}
+
+.mood-option:hover {
+  transform: scale(1.1);
+}
+
+.mood-option.selected {
+  border-color: var(--primary);
+  background-color: #e8f5e9;
+}
+
+/* Streaks Tracker Styles */
+.streaks-container {
+  background-color: white;
+  border-radius: var(--border-radius);
+  padding: 15px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.streak-count {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--primary-dark);
+}
+
+.streak-label {
+  font-size: 14px;
+  color: #666;
+}
+
+.streak-calendar {
+  display: flex;
+  gap: 5px;
+}
+
+.streak-day {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  background-color: #f0f0f0;
+}
+
+.streak-day.active {
+  background-color: var(--primary);
+}
+
+.mood-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 14px;
+  background-color: #f0f0f0;
+  margin-right: 8px;
+}
     </style>
   </head>
   <body>
@@ -302,8 +382,29 @@
           <button id="connectWalletBtn">Connect</button>
         </div>
       </header>
-      
+      <!-- Streaks Tracker -->
+<div id="streaksContainer" class="streaks-container" style="display: none;">
+  <div>
+    <div class="streak-count" id="streakCount">0</div>
+    <div class="streak-label">Day streak</div>
+  </div>
+  <div class="streak-calendar" id="streakCalendar">
+    <!-- Will be filled dynamically -->
+  </div>
+</div>
       <div id="journalForm" class="card" style="display: none;">
+        <!-- Mood Tracker -->
+<div class="mood-selector">
+  <div class="mood-option" data-mood="😊 Happy" title="Happy">😊</div>
+  <div class="mood-option" data-mood="😌 Calm" title="Calm">😌</div>
+  <div class="mood-option" data-mood="🤔 Reflective" title="Reflective">🤔</div>
+  <div class="mood-option" data-mood="😐 Neutral" title="Neutral">😐</div>
+  <div class="mood-option" data-mood="😞 Sad" title="Sad">😞</div>
+  <div class="mood-option" data-mood="😤 Frustrated" title="Frustrated">😤</div>
+  <div class="mood-option" data-mood="😴 Tired" title="Tired">😴</div>
+  <div class="mood-option" data-mood="😀 Excited" title="Excited">😀</div>
+</div>
+<input type="hidden" id="selectedMood" value="">
         <textarea id="journalContent" placeholder="Write your thoughts, reflections, and mindful observations here..."></textarea>
         <div class="controls">
           <div class="toggle-container">
@@ -465,6 +566,7 @@
         document.getElementById('connectPrompt').style.display = 'none';
         
         // Load journals
+        loadUserStreaks();
         loadJournals();
         
         return true;
@@ -780,18 +882,27 @@ async function loadJournals() {
           console.log("Transaction URL:", txUrl);
         }
         
-        journalsDiv.innerHTML += `
-          <div class="journal-entry">
-            <div class="journal-meta">
-              <span class="entry-date">${timestamp} ${blockInfo}</span>
-              <span class="privacy-tag ${entry.is_public ? 'public' : 'private'}">
-                ${entry.is_public ? 'Public' : 'Private'}
-              </span>
-            </div>
-            <div class="journal-content">${entry.content}</div>
-            ${txInfo}
-          </div>
-        `;
+        // Create mood tag if mood exists
+let moodTag = '';
+if (entry.mood) {
+  moodTag = `<span class="mood-tag">${entry.mood}</span>`;
+}
+
+journalsDiv.innerHTML += `
+  <div class="journal-entry">
+    <div class="journal-meta">
+      <span class="entry-date">${timestamp} ${blockInfo}</span>
+      <div>
+        ${moodTag}
+        <span class="privacy-tag ${entry.is_public ? 'public' : 'private'}">
+          ${entry.is_public ? 'Public' : 'Private'}
+        </span>
+      </div>
+    </div>
+    <div class="journal-content">${entry.content}</div>
+    ${txInfo}
+  </div>
+`;
       } catch (renderError) {
         console.error("Error rendering entry:", renderError);
       }
@@ -879,16 +990,24 @@ async function loadPublicJournals() {
             </div>`;
         }
         
-        publicJournalsDiv.innerHTML += `
-          <div class="journal-entry">
-            <div class="journal-meta">
-              <span class="entry-date">${timestamp} ${blockInfo}</span>
-              <span class="truncated-address">By: ${truncateAddress(entry.owner)}</span>
-            </div>
-            <div class="journal-content">${entry.content}</div>
-            ${txInfo}
-          </div>
-        `;
+        let moodTag = '';
+if (entry.mood) {
+  moodTag = `<span class="mood-tag">${entry.mood}</span>`;
+}
+
+publicJournalsDiv.innerHTML += `
+  <div class="journal-entry">
+    <div class="journal-meta">
+      <span class="entry-date">${timestamp} ${blockInfo}</span>
+      <div>
+        ${moodTag}
+        <span class="truncated-address">By: ${truncateAddress(entry.owner)}</span>
+      </div>
+    </div>
+    <div class="journal-content">${entry.content}</div>
+    ${txInfo}
+  </div>
+`;
       } catch (renderError) {
         console.error("Error rendering public entry:", renderError);
       }
@@ -927,6 +1046,22 @@ async function loadPublicJournals() {
   document.getElementById('connectWalletBtn').addEventListener('click', connectWallet);
   document.getElementById('promptConnectBtn').addEventListener('click', connectWallet);
   document.getElementById('createJournalBtn').addEventListener('click', createJournal);
+  initMoodSelector();
+
+// Load user streaks if wallet is connected
+if (window.ethereum) {
+  try {
+    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+    if (accounts && accounts.length > 0) {
+      // ... existing code ...
+      
+      // Load user streaks
+      loadUserStreaks();
+    }
+  } catch (error) {
+    console.error("Error checking initial wallet state:", error);
+  }
+}
   
   // Load public journals immediately, regardless of wallet connection
   loadPublicJournals();
@@ -957,4 +1092,263 @@ async function loadPublicJournals() {
     }
   }
 });
+// Global variables for mood and streaks
+let selectedMood = "";
+let userStreaks = {
+  currentStreak: 0,
+  lastEntryDate: null,
+  recentDays: []
+};
+
+// Initialize mood selector
+function initMoodSelector() {
+  const moodOptions = document.querySelectorAll('.mood-option');
+  moodOptions.forEach(option => {
+    option.addEventListener('click', function() {
+      // Remove selected class from all options
+      moodOptions.forEach(opt => opt.classList.remove('selected'));
+      // Add selected class to clicked option
+      this.classList.add('selected');
+      // Update hidden input
+      selectedMood = this.getAttribute('data-mood');
+      document.getElementById('selectedMood').value = selectedMood;
+    });
+  });
+}
+
+// Load user streaks from Firebase
+async function loadUserStreaks() {
+  if (!userAddress) return;
+  
+  try {
+    const streaksDoc = await db.collection("user_streaks").doc(userAddress.toLowerCase()).get();
+    
+    if (streaksDoc.exists) {
+      userStreaks = streaksDoc.data();
+      updateStreaksUI();
+    } else {
+      // Initialize streaks for new user
+      userStreaks = {
+        currentStreak: 0,
+        lastEntryDate: null,
+        recentDays: []
+      };
+    }
+  } catch (error) {
+    console.error("Error loading streaks:", error);
+  }
+}
+
+// Update streaks when a new journal is created
+async function updateStreaks() {
+  if (!userAddress) return;
+  
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayTimestamp = today.getTime();
+    
+    // Check if we already have an entry for today
+    const todayExists = userStreaks.recentDays.includes(todayTimestamp);
+    
+    if (!todayExists) {
+      // Add today to recent days
+      userStreaks.recentDays.push(todayTimestamp);
+      
+      // Keep only the last 14 days
+      if (userStreaks.recentDays.length > 14) {
+        userStreaks.recentDays.sort((a, b) => b - a); // Sort descending
+        userStreaks.recentDays = userStreaks.recentDays.slice(0, 14);
+      }
+      
+      // Check if yesterday was logged to maintain streak
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayTimestamp = yesterday.getTime();
+      
+      if (userStreaks.lastEntryDate === null || 
+          userStreaks.lastEntryDate === yesterdayTimestamp ||
+          new Date(userStreaks.lastEntryDate).toDateString() === yesterday.toDateString()) {
+        // Maintain or increment streak
+        userStreaks.currentStreak++;
+      } else if (userStreaks.lastEntryDate < yesterdayTimestamp) {
+        // Streak broken
+        userStreaks.currentStreak = 1;
+      }
+      
+      // Update last entry date
+      userStreaks.lastEntryDate = todayTimestamp;
+      
+      // Save to Firebase
+      await db.collection("user_streaks").doc(userAddress.toLowerCase()).set(userStreaks);
+      
+      // Update UI
+      updateStreaksUI();
+    }
+  } catch (error) {
+    console.error("Error updating streaks:", error);
+  }
+}
+
+// Update the streaks UI
+function updateStreaksUI() {
+  const streaksContainer = document.getElementById('streaksContainer');
+  const streakCount = document.getElementById('streakCount');
+  const streakCalendar = document.getElementById('streakCalendar');
+  
+  if (userAddress) {
+    streaksContainer.style.display = 'flex';
+    streakCount.textContent = userStreaks.currentStreak;
+    
+    // Update calendar
+    streakCalendar.innerHTML = '';
+    
+    // Get the last 7 days
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    for (let i = 6; i >= 0; i--) {
+      const day = new Date(today);
+      day.setDate(day.getDate() - i);
+      const dayTimestamp = day.getTime();
+      
+      const dayElement = document.createElement('div');
+      dayElement.className = 'streak-day';
+      
+      // Check if this day is in the user's recent days
+      if (userStreaks.recentDays.includes(dayTimestamp) || 
+          userStreaks.recentDays.some(d => new Date(d).toDateString() === day.toDateString())) {
+        dayElement.classList.add('active');
+      }
+      
+      streakCalendar.appendChild(dayElement);
+    }
+  } else {
+    streaksContainer.style.display = 'none';
+  }
+}
+
+// Modify the createJournal function to include mood and update streaks
+async function createJournal() {
+  try {
+    const content = document.getElementById('journalContent').value;
+    const isPublic = document.getElementById('publicToggle').checked;
+    const mood = document.getElementById('selectedMood').value;
+
+    if (!content.trim()) {
+      alert("Please enter a journal entry.");
+      return;
+    }
+
+    // Disable button and show status
+    document.getElementById('createJournalBtn').disabled = true;
+    document.getElementById('statusMsg').textContent = "Processing your journal entry...";
+
+    // Check connection and reinitialize if necessary
+    if (!userAddress || !contract) {
+      document.getElementById('statusMsg').textContent = "Reconnecting to wallet...";
+      await connectWallet();
+      
+      if (!userAddress || !contract) {
+        document.getElementById('statusMsg').textContent = "Please connect your wallet first";
+        document.getElementById('createJournalBtn').disabled = false;
+        return;
+      }
+    }
+
+    // Submit journal to blockchain
+    document.getElementById('statusMsg').textContent = "Sending transaction to blockchain...";
+    
+    try {
+      // Ensure we're using fresh contract instance
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      signer = provider.getSigner();
+      contract = new ethers.Contract(contractAddress, abi, signer);
+      
+      // Get the actual address with correct case from signer
+      userAddress = await signer.getAddress();
+      
+      let tx = await contract.create_journal(content, isPublic);
+      console.log("Transaction sent:", tx.hash);
+      document.getElementById('statusMsg').textContent = `Transaction sent! Waiting for confirmation... Tx hash: ${tx.hash.substring(0, 10)}...`;
+      
+      // Wait for transaction confirmation
+      const receipt = await tx.wait();
+      console.log("Transaction confirmed in block:", receipt.blockNumber);
+      console.log("Full receipt:", receipt);
+      
+      // Get network information
+      const network = await provider.getNetwork();
+      console.log("Current network:", network.chainId);
+      
+      // Determine Etherscan domain
+      let etherscanDomain = "https://sepolia.etherscan.io";
+      if (network.chainId === 1) {
+        etherscanDomain = "https://etherscan.io";
+      } else if (network.chainId === 137) {
+        etherscanDomain = "https://polygonscan.com";
+      } else if (network.chainId === 11155111) {
+        etherscanDomain = "https://sepolia.etherscan.io";
+      }
+      
+      // Save to Firebase with all required data
+      const journalEntry = {
+        owner: userAddress,
+        lowercaseOwner: userAddress.toLowerCase(), // Add a lowercase field for querying
+        content: content,
+        is_public: isPublic,
+        mood: mood, // Store the mood
+        tx_hash: tx.hash,
+        block_number: receipt.blockNumber,
+        network_id: network.chainId,
+        etherscan_domain: etherscanDomain, // Store the domain directly
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
+      console.log("Saving journal entry to Firebase:", journalEntry);
+      
+      await db.collection("journals").add(journalEntry);
+      
+      // Update user's streak
+      await updateStreaks();
+      
+      document.getElementById('statusMsg').textContent = `Journal entry saved successfully! Block #${receipt.blockNumber}`;
+      document.getElementById('journalContent').value = "";
+      document.getElementById('publicToggle').checked = false;
+      
+      // Reset mood selection
+      const moodOptions = document.querySelectorAll('.mood-option');
+      moodOptions.forEach(opt => opt.classList.remove('selected'));
+      document.getElementById('selectedMood').value = "";
+      selectedMood = "";
+      
+      // Show direct link in the UI
+      const txLink = `${etherscanDomain}/tx/${tx.hash}`;
+      document.getElementById('statusMsg').innerHTML = `Journal entry saved successfully! Block #${receipt.blockNumber}. <a href="${txLink}" target="_blank">View on Etherscan</a>`;
+    } catch (txError) {
+      console.error("Transaction error:", txError);
+      document.getElementById('statusMsg').textContent = `Transaction error: ${txError.message}`;
+    }
+  } catch (error) {
+    console.error('Error creating journal:', error);
+    document.getElementById('statusMsg').textContent = 'Error creating journal: ' + error.message;
+  } finally {
+    document.getElementById('createJournalBtn').disabled = false;
+    // Always try to load journals after an operation
+    loadJournals();
+    // Also load public journals
+    loadPublicJournals();
+  }
+}
+
+// Modify the loadJournals function to display mood
+function modifyJournalDisplay(entry) {
+  // Create mood tag if mood exists
+  let moodTag = '';
+  if (entry.mood) {
+    moodTag = `<span class="mood-tag">${entry.mood}</span>`;
+  }
+  
+  return moodTag;
+}
 </script>
