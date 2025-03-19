@@ -52,6 +52,19 @@ header {
   padding-bottom: 20px;
   border-bottom: 1px solid rgba(45, 55, 72, 0.1);
 }
+.title-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.created-by {
+  font-size: 0.85rem;
+  color: var(--primary);
+  font-weight: 500;
+  opacity: 0.7;
+  margin-top: -4px; /* Pulls it closer to the title */
+}
 
 h1 {
   font-size: 2.25rem;
@@ -510,7 +523,10 @@ button:disabled::after {
   <body>
     <div class="container">
       <header>
-        <h1>Mindful Journal</h1>
+        <div class="title-container">
+          <h1>Mindful Journal</h1>
+          <p class="created-by">Created by Aviv Pilipski</p>
+        </div>
         <div class="wallet-status">
           <div class="status-indicator" id="connectionIndicator"></div>
           <span id="walletStatus">Wallet not connected</span>
