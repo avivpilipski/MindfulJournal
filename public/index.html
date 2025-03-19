@@ -207,6 +207,51 @@ textarea:focus {
   border-radius: 50%;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
+.journal-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  color: var(--primary);
+  font-weight: 500;
+}
+
+/* Heart button styles */
+.heart-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent-light);
+  border: none;
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.heart-button:hover {
+  background: rgba(76, 104, 215, 0.2);
+  transform: translateY(-2px);
+}
+
+.heart-button.liked {
+  background: rgba(229, 62, 62, 0.1);
+  color: #E53E3E;
+}
+
+.heart-icon {
+  font-size: 1.1rem;
+}
+
+.journal-content {
+  line-height: 1.8;
+  color: var(--dark-text);
+  font-size: 1rem;
+}
 
 input:checked + .slider {
   background: linear-gradient(135deg, var(--accent) 0%, #7F9CF5 100%);
@@ -1087,6 +1132,7 @@ async function createIndexes() {
   }
 }
 
+// ... existing code ...
 async function loadPublicJournals() {
   const publicJournalsDiv = document.getElementById('publicJournals');
   publicJournalsDiv.innerHTML = "<p class='loading'>Loading public journals...</p>";
@@ -1112,6 +1158,7 @@ async function loadPublicJournals() {
     querySnapshot.forEach((doc) => {
       try {
         const entry = doc.data();
+        const entryId = doc.id; // Get the document ID for like functionality
         const timestamp = entry.timestamp ? formatDate(entry.timestamp) : 'Just now';
         
         // Determine the appropriate Etherscan domain
@@ -1142,23 +1189,33 @@ async function loadPublicJournals() {
         }
         
         let moodTag = '';
-if (entry.mood) {
-  moodTag = `<span class="mood-tag">${entry.mood}</span>`;
-}
-
-publicJournalsDiv.innerHTML += `
-  <div class="journal-entry">
-    <div class="journal-meta">
-      <span class="entry-date">${timestamp} ${blockInfo}</span>
-      <div>
-        ${moodTag}
-        <span class="truncated-address">By: ${truncateAddress(entry.owner)}</span>
-      </div>
-    </div>
-    <div class="journal-content">${entry.content}</div>
-    ${txInfo}
-  </div>
-`;
+        if (entry.mood) {
+          moodTag = `<span class="mood-tag">${entry.mood}</span>`;
+        }
+        
+        // Get like count and check if user has liked this entry
+        const likeCount = entry.likes ? Object.keys(entry.likes).length : 0;
+        const userHasLiked = userAddress && entry.likes && entry.likes[userAddress.toLowerCase()];
+        
+        publicJournalsDiv.innerHTML += `
+          <div class="journal-entry" data-entry-id="${entryId}">
+            <div class="journal-meta">
+              <span class="entry-date">${timestamp} ${blockInfo}</span>
+              <div>
+                ${moodTag}
+                <span class="truncated-address">By: ${truncateAddress(entry.owner)}</span>
+              </div>
+            </div>
+            <div class="journal-content">${entry.content}</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px;">
+              ${txInfo}
+              <button class="heart-button ${userHasLiked ? 'liked' : ''}" onclick="toggleLike('${entryId}')">
+                <span class="heart-icon">${userHasLiked ? '❤️' : '🤍'}</span>
+                <span class="like-count">${likeCount}</span>
+              </button>
+            </div>
+          </div>
+        `;
       } catch (renderError) {
         console.error("Error rendering public entry:", renderError);
       }
@@ -1168,6 +1225,7 @@ publicJournalsDiv.innerHTML += `
     publicJournalsDiv.innerHTML = `<p>Error loading public journals: ${error.message}. Please try again.</p>`;
   }
 }
+// ... existing code ...
 
   // Helper Functions
   function truncateAddress(address) {
@@ -1198,6 +1256,8 @@ publicJournalsDiv.innerHTML += `
   document.getElementById('promptConnectBtn').addEventListener('click', connectWallet);
   document.getElementById('createJournalBtn').addEventListener('click', createJournal);
   initMoodSelector();
+
+  window.toggleLike = toggleLike;
 
 // Load user streaks if wallet is connected
 if (window.ethereum) {
@@ -1378,6 +1438,75 @@ function updateStreaksUI() {
     streaksContainer.style.display = 'none';
   }
 }
+
+// ... existing code ...
+// Toggle like on a journal entry
+async function toggleLike(entryId) {
+  try {
+    // Check if user is connected
+    if (!userAddress) {
+      alert("Please connect your wallet to like journal entries.");
+      return;
+    }
+    
+    // Get the journal entry from Firestore
+    const entryRef = db.collection("journals").doc(entryId);
+    const entryDoc = await entryRef.get();
+    
+    if (!entryDoc.exists) {
+      console.error("Entry not found");
+      return;
+    }
+    
+    const entry = entryDoc.data();
+    const userLowercase = userAddress.toLowerCase();
+    
+    // Initialize likes object if it doesn't exist
+    if (!entry.likes) {
+      entry.likes = {};
+    }
+    
+    // Toggle like status
+    if (entry.likes[userLowercase]) {
+      // User already liked this entry, so unlike it
+      delete entry.likes[userLowercase];
+    } else {
+      // User hasn't liked this entry, so like it
+      entry.likes[userLowercase] = true;
+    }
+    
+    // Update the entry in Firestore
+    await entryRef.update({ likes: entry.likes });
+    
+    // Update UI
+    const likeCount = Object.keys(entry.likes).length;
+    const userHasLiked = entry.likes[userLowercase];
+    
+    // Find the button that was clicked and update it
+    const entryElement = document.querySelector(`.journal-entry[data-entry-id="${entryId}"]`);
+    if (entryElement) {
+      const heartButton = entryElement.querySelector('.heart-button');
+      const heartIcon = heartButton.querySelector('.heart-icon');
+      const likeCountElement = heartButton.querySelector('.like-count');
+      
+      // Update button appearance
+      if (userHasLiked) {
+        heartButton.classList.add('liked');
+        heartIcon.textContent = '❤️';
+      } else {
+        heartButton.classList.remove('liked');
+        heartIcon.textContent = '🤍';
+      }
+      
+      // Update like count
+      likeCountElement.textContent = likeCount;
+    }
+  } catch (error) {
+    console.error("Error toggling like:", error);
+    alert("Error liking entry. Please try again.");
+  }
+}
+// ... existing code ...
 
 // Modify the createJournal function to include mood and update streaks
 async function createJournal() {
